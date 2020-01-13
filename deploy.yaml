@@ -6,10 +6,6 @@ service:
   projectName: example
   singleton: false # implies replica = 1 & deployment strategy = recreate
   image: paulbouwer/hello-kubernetes:1.5 # {{ env "CI_COMMIT_SHA" | default "latest" }}
-  # pullCredentials: {}
-  #   # registry: registry.gitlab.com
-  #   # username: {{ requiredEnv "DOCKER_REGISTRY_USERNAME" }}
-  #   # password: {{ requiredEnv "DOCKER_REGISTRY_PASSWORD" }}
 
   ports:
     - name: http
@@ -20,7 +16,7 @@ service:
 
   resources:
     limits:
-      cpu: 1
+      cpu: "1"
       memory: 1Gi
     requests:
       cpu: 100m

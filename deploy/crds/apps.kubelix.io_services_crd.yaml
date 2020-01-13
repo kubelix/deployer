@@ -9,7 +9,7 @@ spec:
     listKind: ServiceList
     plural: services
     singular: service
-  scope: Cluster
+  scope: Namespaced
   subresources:
     status: {}
   validation:
@@ -31,9 +31,18 @@ spec:
         spec:
           description: ServiceSpec defines the desired state of Service
           properties:
+            args:
+              items:
+                type: string
+              type: array
+            command:
+              items:
+                type: string
+              type: array
             env:
               additionalProperties:
                 type: string
+              description: Environment defines env vars for the app container
               type: object
             files:
               items:
@@ -50,9 +59,8 @@ spec:
               type: array
             image:
               type: string
-            name:
-              type: string
             ports:
+              description: PortList holds a list of ports
               items:
                 description: Port defines a port the app opens
                 properties:
@@ -81,6 +89,7 @@ spec:
                 type: object
               type: array
             projectName:
+              description: Name        string   `json:"name"`
               type: string
             resources:
               description: ResourceRequirements describes the compute resource requirements.
@@ -104,7 +113,6 @@ spec:
               type: boolean
           required:
           - image
-          - name
           - projectName
           - singleton
           type: object

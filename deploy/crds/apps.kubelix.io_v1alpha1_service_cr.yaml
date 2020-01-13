@@ -1,9 +1,8 @@
 apiVersion: apps.kubelix.io/v1alpha1
 kind: Service
 metadata:
-  name: example-service
+  name: example
 spec:
-  name: hello-world
   projectName: example
   singleton: false # implies replica = 1 & deployment strategy = recreate
   image: paulbouwer/hello-kubernetes:1.5 # {{ env "CI_COMMIT_SHA" | default "latest" }}
@@ -17,7 +16,7 @@ spec:
 
   resources:
     limits:
-      cpu: 1
+      cpu: "1"
       memory: 1Gi
     requests:
       cpu: 100m

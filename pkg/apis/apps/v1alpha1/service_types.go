@@ -7,16 +7,24 @@ import (
 
 // ServiceSpec defines the desired state of Service
 type ServiceSpec struct {
-	Name        string `json:"name"`
-	ProjectName string `json:"projectName"`
-	Singleton   bool   `json:"singleton"`
-	Image       string `json:"image"`
+	// Name        string   `json:"name"`
+	ProjectName string   `json:"projectName"`
+	Singleton   bool     `json:"singleton"`
+	Image       string   `json:"image"`
+	Command     []string `json:"command,omitempty"`
+	Args        []string `json:"args,omitempty"`
 
-	Ports     []Port                      `json:"ports,omitempty"`
+	Ports     PortList                      `json:"ports,omitempty"`
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-	Env       map[string]string           `json:"env,omitempty"`
+	Env       Environment                 `json:"env,omitempty"`
 	Files     []File                      `json:"files,omitempty"`
 }
+
+// Environment defines env vars for the app container
+type Environment map[string]string
+
+// PortList holds a list of ports
+type PortList []Port
 
 // Port defines a port the app opens
 type Port struct {
@@ -38,14 +46,13 @@ type File struct {
 }
 
 // ServiceStatus defines the observed state of Service
-type ServiceStatus struct {
-}
+type ServiceStatus struct {}
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Service is the Schema for the services API
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:path=services,scope=Cluster
+// +kubebuilder:resource:path=services,scope=Namespaced
 type Service struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
