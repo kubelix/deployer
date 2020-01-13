@@ -24,6 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	appsv1alpha1 "gitlab.com/klinkert.io/kubelix/deployer/pkg/apis/apps/v1alpha1"
+	"gitlab.com/klinkert.io/kubelix/deployer/pkg/names"
 )
 
 var log = logf.Log.WithName("controller_service")
@@ -297,14 +298,22 @@ func (r *ReconcileService) newIngressesForService(svc *appsv1alpha1.Service) ([]
 		}
 
 		for _, ing := range p.Ingresses {
+			name := names.FormatDash(strings.Join([]string{svc.Name, p.Name,ing.Host}, "-"))
+
 			ingress := &networkingv1beta1.Ingress{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      svc.Name,
+					Name:      name,
 					Namespace: svc.Namespace,
 					Labels:    labels,
 				},
 				Spec: networkingv1beta1.IngressSpec{
 					Rules: r.makeIngressRules(svc, p, ing),
+					TLS: []networkingv1beta1.IngressTLS{
+						{
+							Hosts:      []string{ing.Host},
+							SecretName: name + "-tls",
+						},
+					},
 				},
 			}
 
