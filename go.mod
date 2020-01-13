@@ -6,6 +6,9 @@ require (
 	github.com/go-logr/logr v0.1.0
 	github.com/operator-framework/operator-sdk v0.14.0
 	github.com/spf13/pflag v1.0.5
+	golang.org/x/crypto v0.0.0-20191205180655-e7c4368fe9dd // indirect
+	golang.org/x/sys v0.0.0-20200107162124-548cf772de50 // indirect
+	gopkg.in/yaml.v2 v2.2.7 // indirect
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v12.0.0+incompatible

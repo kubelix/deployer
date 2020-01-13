@@ -3,16 +3,15 @@ kind: Service
 metadata:
   name: example
 spec:
-  projectName: example
+  projectName: sample-web-app
   singleton: false # implies replica = 1 & deployment strategy = recreate
   image: paulbouwer/hello-kubernetes:1.5 # {{ env "CI_COMMIT_SHA" | default "latest" }}
 
   ports:
     - name: http
       container: 8080
-      ingress:
-        paths: ["/"]
-        hosts: ["example.klinkert.io"]
+      ingresses:
+        - host: "example.klinkert.io"
 
   resources:
     limits:

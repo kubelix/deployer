@@ -3,14 +3,17 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1beta1 "k8s.io/api/networking/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -50,14 +53,20 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// TODO(user): Modify this to be the types you create that are owned by the primary resource
-	// Watch for changes to secondary resource Pods and requeue the owner Service
-	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &appsv1alpha1.Service{},
-	})
-	if err != nil {
-		return err
+	createdItems := []runtime.Object{
+		//&appsv1.Deployment{},
+		//&corev1.Service{},
+		//&networkingv1beta1.Ingress{},
+	}
+
+	for _, t := range createdItems {
+		err = c.Watch(&source.Kind{Type: t}, &handler.EnqueueRequestForOwner{
+			IsController: true,
+			OwnerType:    &appsv1alpha1.Service{},
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -83,9 +92,9 @@ func (r *ReconcileService) Reconcile(request reconcile.Request) (reconcile.Resul
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling Service")
 
-	// Fetch the Service instance
-	instance := &appsv1alpha1.Service{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+	// Fetch the Service svc
+	svc := &appsv1alpha1.Service{}
+	err := r.client.Get(context.TODO(), request.NamespacedName, svc)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -97,7 +106,17 @@ func (r *ReconcileService) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
-	err = r.ensureDeployment(err, instance, reqLogger)
+	err = r.ensureDeployment(err, svc, reqLogger.WithValues("Generated.Version", "apps/v1", "Generated.Kind", "Deployment"))
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	err = r.ensureService(err, svc, reqLogger.WithValues("Generated.Version", "core/v1", "Generated.Kind", "Service"))
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	err = r.ensureIngresses(err, svc, reqLogger.WithValues("Generated.Version", "networking/v1beta1", "Generated.Kind", "Ingress"))
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -105,19 +124,15 @@ func (r *ReconcileService) Reconcile(request reconcile.Request) (reconcile.Resul
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileService) ensureDeployment(err error, instance *appsv1alpha1.Service, reqLogger logr.Logger) error {
-	// Define a new Deployment object
-	dep, err := r.newDeploymentForService(instance)
-	if err != nil {
-		return err
-	}
+func (r *ReconcileService) makeLabels(svc *appsv1alpha1.Service) map[string]string {
+	return map[string]string{
+		"apps.kubelix.io/service": svc.Name,
+		"apps.kubelix.io/project": svc.Spec.ProjectName,
 
-	depName := types.NamespacedName{Name: dep.Name, Namespace: dep.Namespace}
-	if err := r.ensureObject(reqLogger, dep, depName); err != nil {
-		return fmt.Errorf("failed to handle deployment: %v", err)
+		"app.kubernetes.io/name":       svc.Spec.ProjectName,
+		"app.kubernetes.io/svc":        svc.Name,
+		"app.kubernetes.io/managed-by": "kubelix-deployer",
 	}
-
-	return nil
 }
 
 func (r *ReconcileService) ensureObject(reqLogger logr.Logger, obj runtime.Object, name types.NamespacedName) error {
@@ -138,17 +153,37 @@ func (r *ReconcileService) ensureObject(reqLogger logr.Logger, obj runtime.Objec
 
 	err = r.client.Update(context.TODO(), obj)
 	if err != nil {
+		if strings.Contains(err.Error(), "field is immutable") {
+			errDelete := r.client.Delete(context.TODO(), obj)
+			if errDelete != nil {
+				return fmt.Errorf("failed to delete object after update was not permitted (field is immutable): %v", errDelete)
+			}
+
+			// as we have deleted the object we now can safely recreate it
+			return r.ensureObject(reqLogger, obj, name)
+		}
 		return fmt.Errorf("failed to update object: %v", err)
 	}
 	return nil
 }
 
+func (r *ReconcileService) ensureDeployment(err error, svc *appsv1alpha1.Service, reqLogger logr.Logger) error {
+	dep, err := r.newDeploymentForService(svc)
+	if err != nil {
+		return err
+	}
+
+	depName := types.NamespacedName{Name: dep.Name, Namespace: dep.Namespace}
+	if err := r.ensureObject(reqLogger, dep, depName); err != nil {
+		return fmt.Errorf("failed to handle deployment: %v", err)
+	}
+
+	return nil
+}
+
 // newDeploymentForService creates the deployment for the given service
 func (r *ReconcileService) newDeploymentForService(svc *appsv1alpha1.Service) (*appsv1.Deployment, error) {
-	labels := map[string]string{
-		"kubelix.io/service": svc.Name,
-		"kubelix.io/project": svc.Spec.ProjectName,
-	}
+	labels := r.makeLabels(svc)
 
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -157,17 +192,24 @@ func (r *ReconcileService) newDeploymentForService(svc *appsv1alpha1.Service) (*
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels,
+			},
 			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: labels,
+				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Name:      svc.Name,
-							Image:     svc.Spec.Image,
-							Command:   svc.Spec.Command,
-							Args:      svc.Spec.Args,
-							Env:       svc.Spec.Env.ToEnvVars(),
-							Resources: svc.Spec.Resources,
-							Ports:     svc.Spec.Ports.ToPodPorts(),
+							ImagePullPolicy: corev1.PullAlways,
+							Name:            svc.Name,
+							Image:           svc.Spec.Image,
+							Command:         svc.Spec.Command,
+							Args:            svc.Spec.Args,
+							Env:             svc.Spec.Env.ToEnvVars(),
+							Resources:       svc.Spec.Resources,
+							Ports:           svc.Spec.Ports.ToPodPorts(),
 						},
 					},
 				},
@@ -183,10 +225,126 @@ func (r *ReconcileService) newDeploymentForService(svc *appsv1alpha1.Service) (*
 		dep.Spec.Strategy.Type = appsv1.RollingUpdateDeploymentStrategyType
 	}
 
-	// Set Service instance as the owner and controller
 	if err := controllerutil.SetControllerReference(svc, dep, r.scheme); err != nil {
 		return nil, err
 	}
 
 	return dep, nil
+}
+
+func (r *ReconcileService) ensureService(err error, svc *appsv1alpha1.Service, reqLogger logr.Logger) error {
+	coreService, err := r.newServiceForService(svc)
+	if err != nil {
+		return err
+	}
+
+	serviceName := types.NamespacedName{Name: coreService.Name, Namespace: coreService.Namespace}
+	if err := r.ensureObject(reqLogger, coreService, serviceName); err != nil {
+		return fmt.Errorf("failed to handle service: %v", err)
+	}
+
+	return nil
+}
+
+// newDeploymentForService creates the deployment for the given service
+func (r *ReconcileService) newServiceForService(svc *appsv1alpha1.Service) (*corev1.Service, error) {
+	labels := r.makeLabels(svc)
+
+	coreService := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      svc.Name,
+			Namespace: svc.Namespace,
+			Labels:    labels,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports:    svc.Spec.Ports.ToServicePorts(),
+			Selector: labels,
+			Type:     corev1.ServiceTypeClusterIP,
+		},
+	}
+
+	if err := controllerutil.SetControllerReference(svc, coreService, r.scheme); err != nil {
+		return nil, err
+	}
+
+	return coreService, nil
+}
+
+func (r *ReconcileService) ensureIngresses(err error, svc *appsv1alpha1.Service, reqLogger logr.Logger) error {
+	ingresses, err := r.newIngressesForService(svc)
+	if err != nil {
+		return err
+	}
+
+	for _, ingress := range ingresses {
+		depName := types.NamespacedName{Name: ingress.Name, Namespace: ingress.Namespace}
+		if err := r.ensureObject(reqLogger, ingress, depName); err != nil {
+			return fmt.Errorf("failed to handle ingress: %v", err)
+		}
+	}
+
+	return nil
+}
+
+// newDeploymentForService creates the deployment for the given coreService
+func (r *ReconcileService) newIngressesForService(svc *appsv1alpha1.Service) ([]*networkingv1beta1.Ingress, error) {
+	labels := r.makeLabels(svc)
+	ingresses := make([]*networkingv1beta1.Ingress, 0)
+
+	for _, p := range svc.Spec.Ports {
+		if len(p.Ingresses) == 0 {
+			continue
+		}
+
+		for _, ing := range p.Ingresses {
+			ingress := &networkingv1beta1.Ingress{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      svc.Name,
+					Namespace: svc.Namespace,
+					Labels:    labels,
+				},
+				Spec: networkingv1beta1.IngressSpec{
+					Rules: r.makeIngressRules(svc, p, ing),
+				},
+			}
+
+			if err := controllerutil.SetControllerReference(svc, ingress, r.scheme); err != nil {
+				return nil, err
+			}
+
+			ingresses = append(ingresses, ingress)
+		}
+	}
+
+	return ingresses, nil
+}
+
+func (r *ReconcileService) makeIngressRules(svc *appsv1alpha1.Service, p appsv1alpha1.Port, ing appsv1alpha1.PortIngress) []networkingv1beta1.IngressRule {
+	rules := make([]networkingv1beta1.IngressRule, 0)
+	paths := make([]networkingv1beta1.HTTPIngressPath, 0)
+
+	if len(ing.Paths) == 0 {
+		ing.Paths = []string{"/"}
+	}
+
+	for _, path := range ing.Paths {
+		paths = append(paths, networkingv1beta1.HTTPIngressPath{
+			Path: path,
+			Backend: networkingv1beta1.IngressBackend{
+				ServicePort: intstr.FromString(p.Name),
+				ServiceName: svc.Name,
+			},
+		})
+	}
+
+	rules = append(rules, networkingv1beta1.IngressRule{
+		Host: ing.Host,
+		IngressRuleValue: networkingv1beta1.IngressRuleValue{
+			HTTP: &networkingv1beta1.HTTPIngressRuleValue{
+				Paths: paths,
+			},
+		},
+	})
+
+	return rules
 }

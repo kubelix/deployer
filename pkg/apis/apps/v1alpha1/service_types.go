@@ -7,14 +7,13 @@ import (
 
 // ServiceSpec defines the desired state of Service
 type ServiceSpec struct {
-	// Name        string   `json:"name"`
 	ProjectName string   `json:"projectName"`
 	Singleton   bool     `json:"singleton"`
 	Image       string   `json:"image"`
 	Command     []string `json:"command,omitempty"`
 	Args        []string `json:"args,omitempty"`
 
-	Ports     PortList                      `json:"ports,omitempty"`
+	Ports     PortList                    `json:"ports,omitempty"`
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 	Env       Environment                 `json:"env,omitempty"`
 	Files     []File                      `json:"files,omitempty"`
@@ -28,15 +27,17 @@ type PortList []Port
 
 // Port defines a port the app opens
 type Port struct {
-	Name      string       `json:"name"`
-	Container uint16       `json:"container"`
-	Ingress   *PortIngress `json:"ingress,omitempty"`
+	Name      string        `json:"name"`
+	Container uint16        `json:"container"`
+	Ingresses []PortIngress `json:"ingresses,omitempty"`
 }
 
 // PortIngress defines the ingress config for a port
 type PortIngress struct {
-	Paths []string `json:"paths"`
-	Hosts []string `json:"hosts"`
+	Host string `json:"host"`
+
+	// # +kubebuilder:default={/}
+	Paths []string `json:"paths,omitempty"`
 }
 
 // File defines a file the app needs
@@ -46,7 +47,7 @@ type File struct {
 }
 
 // ServiceStatus defines the observed state of Service
-type ServiceStatus struct {}
+type ServiceStatus struct{}
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
