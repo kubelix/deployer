@@ -1,0 +1,119 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: services.apps.kubelix.io
+spec:
+  group: apps.kubelix.io
+  names:
+    kind: Service
+    listKind: ServiceList
+    plural: services
+    singular: service
+  scope: Cluster
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      description: Service is the Schema for the services API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: ServiceSpec defines the desired state of Service
+          properties:
+            env:
+              additionalProperties:
+                type: string
+              type: object
+            files:
+              items:
+                description: File defines a file the app needs
+                properties:
+                  content:
+                    type: string
+                  path:
+                    type: string
+                required:
+                - content
+                - path
+                type: object
+              type: array
+            image:
+              type: string
+            name:
+              type: string
+            ports:
+              items:
+                description: Port defines a port the app opens
+                properties:
+                  container:
+                    type: integer
+                  ingress:
+                    description: PortIngress defines the ingress config for a port
+                    properties:
+                      hosts:
+                        items:
+                          type: string
+                        type: array
+                      paths:
+                        items:
+                          type: string
+                        type: array
+                    required:
+                    - hosts
+                    - paths
+                    type: object
+                  name:
+                    type: string
+                required:
+                - container
+                - name
+                type: object
+              type: array
+            projectName:
+              type: string
+            resources:
+              description: ResourceRequirements describes the compute resource requirements.
+              properties:
+                limits:
+                  additionalProperties:
+                    type: string
+                  description: 'Limits describes the maximum amount of compute resources
+                    allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
+                  type: object
+                requests:
+                  additionalProperties:
+                    type: string
+                  description: 'Requests describes the minimum amount of compute resources
+                    required. If Requests is omitted for a container, it defaults
+                    to Limits if that is explicitly specified, otherwise to an implementation-defined
+                    value. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
+                  type: object
+              type: object
+            singleton:
+              type: boolean
+          required:
+          - image
+          - name
+          - projectName
+          - singleton
+          type: object
+        status:
+          description: ServiceStatus defines the observed state of Service
+          type: object
+      type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
