@@ -3,8 +3,9 @@
 ## TODO
 
 - [ ] File mounting
-- [ ] Store checksums in service status to prevent unnecessary updates  
-
+- [ ] Store checksums in service status to prevent unnecessary updates of deployment
+- [ ] ImagePullSecrets
+- [ ] Liveness & Readiness probes
 
 ## Assumptions / usage
 
@@ -14,3 +15,7 @@
 - Each service has one or more ports
     - each port may have an ingress config
         - each ingress config may have one or more hosts, but paths are configured per host
+- Configuration of services is either done with
+    - environment variables
+    - config files
+    - CLI args

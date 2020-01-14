@@ -6,17 +6,11 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	networkingv1beta1 "k8s.io/api/networking/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -24,8 +18,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	appsv1alpha1 "gitlab.com/klinkert.io/kubelix/deployer/pkg/apis/apps/v1alpha1"
-	"gitlab.com/klinkert.io/kubelix/deployer/pkg/config"
-	"gitlab.com/klinkert.io/kubelix/deployer/pkg/names"
 )
 
 var log = logf.Log.WithName("controller_service")
@@ -126,15 +118,19 @@ func (r *ReconcileService) Reconcile(request reconcile.Request) (reconcile.Resul
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileService) makeLabels(svc *appsv1alpha1.Service) map[string]string {
+func (r *ReconcileService) makeKubelixLabels(svc *appsv1alpha1.Service) map[string]string {
 	return map[string]string{
 		"apps.kubelix.io/service": svc.Name,
 		"apps.kubelix.io/project": svc.Namespace,
+	}
+}
 
+func (r *ReconcileService) makeLabels(svc *appsv1alpha1.Service) map[string]string {
+	return mergeLabels(r.makeKubelixLabels(svc), map[string]string{
 		"app.kubernetes.io/name":       svc.Namespace,
 		"app.kubernetes.io/svc":        svc.Name,
 		"app.kubernetes.io/managed-by": "kubelix-deployer",
-	}
+	})
 }
 
 func (r *ReconcileService) ensureObject(reqLogger logr.Logger, obj runtime.Object, name types.NamespacedName) error {
@@ -167,206 +163,4 @@ func (r *ReconcileService) ensureObject(reqLogger logr.Logger, obj runtime.Objec
 		return fmt.Errorf("failed to update object: %v", err)
 	}
 	return nil
-}
-
-func (r *ReconcileService) ensureDeployment(err error, svc *appsv1alpha1.Service, reqLogger logr.Logger) error {
-	dep, err := r.newDeploymentForService(svc)
-	if err != nil {
-		return err
-	}
-
-	depName := types.NamespacedName{Name: dep.Name, Namespace: dep.Namespace}
-	if err := r.ensureObject(reqLogger, dep, depName); err != nil {
-		return fmt.Errorf("failed to handle deployment: %v", err)
-	}
-
-	return nil
-}
-
-func (r *ReconcileService) newDeploymentForService(svc *appsv1alpha1.Service) (*appsv1.Deployment, error) {
-	labels := r.makeLabels(svc)
-
-	dep := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      svc.Name,
-			Namespace: svc.Namespace,
-			Labels:    labels,
-		},
-		Spec: appsv1.DeploymentSpec{
-			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							ImagePullPolicy: corev1.PullAlways,
-							Name:            svc.Name,
-							Image:           svc.Spec.Image,
-							Command:         svc.Spec.Command,
-							Args:            svc.Spec.Args,
-							Env:             svc.Spec.Env.ToEnvVars(),
-							Resources:       svc.Spec.Resources,
-							Ports:           svc.Spec.Ports.ToPodPorts(),
-						},
-					},
-				},
-			},
-		},
-	}
-
-	if svc.Spec.Singleton {
-		dep.Spec.Replicas = ptrOne
-		dep.Spec.Strategy.Type = appsv1.RecreateDeploymentStrategyType
-	} else {
-		dep.Spec.Replicas = ptrThree
-		dep.Spec.Strategy.Type = appsv1.RollingUpdateDeploymentStrategyType
-	}
-
-	if len(config.Config.Deployment.Annotations) > 0 {
-		dep.SetAnnotations(config.Config.Ingress.Annotations)
-	}
-
-
-	if err := controllerutil.SetControllerReference(svc, dep, r.scheme); err != nil {
-		return nil, err
-	}
-
-	return dep, nil
-}
-
-func (r *ReconcileService) ensureService(err error, svc *appsv1alpha1.Service, reqLogger logr.Logger) error {
-	coreService, err := r.newServiceForService(svc)
-	if err != nil {
-		return err
-	}
-
-	serviceName := types.NamespacedName{Name: coreService.Name, Namespace: coreService.Namespace}
-	if err := r.ensureObject(reqLogger, coreService, serviceName); err != nil {
-		return fmt.Errorf("failed to handle service: %v", err)
-	}
-
-	return nil
-}
-
-func (r *ReconcileService) newServiceForService(svc *appsv1alpha1.Service) (*corev1.Service, error) {
-	labels := r.makeLabels(svc)
-
-	coreService := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      svc.Name,
-			Namespace: svc.Namespace,
-			Labels:    labels,
-		},
-		Spec: corev1.ServiceSpec{
-			Ports:    svc.Spec.Ports.ToServicePorts(),
-			Selector: labels,
-			Type:     corev1.ServiceTypeClusterIP,
-		},
-	}
-
-
-	if len(config.Config.CoreService.Annotations) > 0 {
-		coreService.SetAnnotations(config.Config.Ingress.Annotations)
-	}
-
-
-	if err := controllerutil.SetControllerReference(svc, coreService, r.scheme); err != nil {
-		return nil, err
-	}
-
-	return coreService, nil
-}
-
-func (r *ReconcileService) ensureIngresses(err error, svc *appsv1alpha1.Service, reqLogger logr.Logger) error {
-	ingresses, err := r.newIngressesForService(svc)
-	if err != nil {
-		return err
-	}
-
-	for _, ingress := range ingresses {
-		depName := types.NamespacedName{Name: ingress.Name, Namespace: ingress.Namespace}
-		if err := r.ensureObject(reqLogger, ingress, depName); err != nil {
-			return fmt.Errorf("failed to handle ingress: %v", err)
-		}
-	}
-
-	return nil
-}
-
-func (r *ReconcileService) newIngressesForService(svc *appsv1alpha1.Service) ([]*networkingv1beta1.Ingress, error) {
-	labels := r.makeLabels(svc)
-	ingresses := make([]*networkingv1beta1.Ingress, 0)
-
-	for _, p := range svc.Spec.Ports {
-		if len(p.Ingresses) == 0 {
-			continue
-		}
-
-		for _, ing := range p.Ingresses {
-			name := names.FormatDash(strings.Join([]string{svc.Name, p.Name, ing.Host}, "-"))
-
-			ingress := &networkingv1beta1.Ingress{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: svc.Namespace,
-					Labels:    labels,
-				},
-				Spec: networkingv1beta1.IngressSpec{
-					Rules: r.makeIngressRules(svc, p, ing),
-					TLS: []networkingv1beta1.IngressTLS{
-						{
-							Hosts:      []string{ing.Host},
-							SecretName: name + "-tls",
-						},
-					},
-				},
-			}
-
-			if len(config.Config.Ingress.Annotations) > 0 {
-				ingress.SetAnnotations(config.Config.Ingress.Annotations)
-			}
-
-			if err := controllerutil.SetControllerReference(svc, ingress, r.scheme); err != nil {
-				return nil, err
-			}
-
-			ingresses = append(ingresses, ingress)
-		}
-	}
-
-	return ingresses, nil
-}
-
-func (r *ReconcileService) makeIngressRules(svc *appsv1alpha1.Service, p appsv1alpha1.Port, ing appsv1alpha1.PortIngress) []networkingv1beta1.IngressRule {
-	rules := make([]networkingv1beta1.IngressRule, 0)
-	paths := make([]networkingv1beta1.HTTPIngressPath, 0)
-
-	if len(ing.Paths) == 0 {
-		ing.Paths = []string{"/"}
-	}
-
-	for _, path := range ing.Paths {
-		paths = append(paths, networkingv1beta1.HTTPIngressPath{
-			Path: path,
-			Backend: networkingv1beta1.IngressBackend{
-				ServicePort: intstr.FromString(p.Name),
-				ServiceName: svc.Name,
-			},
-		})
-	}
-
-	rules = append(rules, networkingv1beta1.IngressRule{
-		Host: ing.Host,
-		IngressRuleValue: networkingv1beta1.IngressRuleValue{
-			HTTP: &networkingv1beta1.HTTPIngressRuleValue{
-				Paths: paths,
-			},
-		},
-	})
-
-	return rules
 }
