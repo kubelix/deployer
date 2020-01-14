@@ -13,10 +13,11 @@ spec:
       labels:
         name: deployer
     spec:
+      imagePullSecrets:
+        - name: deployer-docker-pull
       serviceAccountName: deployer
       containers:
         - name: deployer
-          # Replace this with the built image name
           image: REPLACE_IMAGE
           command:
           - deployer
