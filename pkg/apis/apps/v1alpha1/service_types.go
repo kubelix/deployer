@@ -7,11 +7,10 @@ import (
 
 // ServiceSpec defines the desired state of Service
 type ServiceSpec struct {
-	ProjectName string   `json:"projectName"`
-	Singleton   bool     `json:"singleton"`
-	Image       string   `json:"image"`
-	Command     []string `json:"command,omitempty"`
-	Args        []string `json:"args,omitempty"`
+	Singleton bool     `json:"singleton"`
+	Image     string   `json:"image"`
+	Command   []string `json:"command,omitempty"`
+	Args      []string `json:"args,omitempty"`
 
 	Ports     PortList                    `json:"ports,omitempty"`
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`

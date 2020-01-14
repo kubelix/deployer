@@ -24,6 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	appsv1alpha1 "gitlab.com/klinkert.io/kubelix/deployer/pkg/apis/apps/v1alpha1"
+	"gitlab.com/klinkert.io/kubelix/deployer/pkg/config"
 	"gitlab.com/klinkert.io/kubelix/deployer/pkg/names"
 )
 
@@ -128,9 +129,9 @@ func (r *ReconcileService) Reconcile(request reconcile.Request) (reconcile.Resul
 func (r *ReconcileService) makeLabels(svc *appsv1alpha1.Service) map[string]string {
 	return map[string]string{
 		"apps.kubelix.io/service": svc.Name,
-		"apps.kubelix.io/project": svc.Spec.ProjectName,
+		"apps.kubelix.io/project": svc.Namespace,
 
-		"app.kubernetes.io/name":       svc.Spec.ProjectName,
+		"app.kubernetes.io/name":       svc.Namespace,
 		"app.kubernetes.io/svc":        svc.Name,
 		"app.kubernetes.io/managed-by": "kubelix-deployer",
 	}
@@ -182,7 +183,6 @@ func (r *ReconcileService) ensureDeployment(err error, svc *appsv1alpha1.Service
 	return nil
 }
 
-// newDeploymentForService creates the deployment for the given service
 func (r *ReconcileService) newDeploymentForService(svc *appsv1alpha1.Service) (*appsv1.Deployment, error) {
 	labels := r.makeLabels(svc)
 
@@ -226,6 +226,11 @@ func (r *ReconcileService) newDeploymentForService(svc *appsv1alpha1.Service) (*
 		dep.Spec.Strategy.Type = appsv1.RollingUpdateDeploymentStrategyType
 	}
 
+	if len(config.Config.Deployment.Annotations) > 0 {
+		dep.SetAnnotations(config.Config.Ingress.Annotations)
+	}
+
+
 	if err := controllerutil.SetControllerReference(svc, dep, r.scheme); err != nil {
 		return nil, err
 	}
@@ -247,7 +252,6 @@ func (r *ReconcileService) ensureService(err error, svc *appsv1alpha1.Service, r
 	return nil
 }
 
-// newDeploymentForService creates the deployment for the given service
 func (r *ReconcileService) newServiceForService(svc *appsv1alpha1.Service) (*corev1.Service, error) {
 	labels := r.makeLabels(svc)
 
@@ -263,6 +267,12 @@ func (r *ReconcileService) newServiceForService(svc *appsv1alpha1.Service) (*cor
 			Type:     corev1.ServiceTypeClusterIP,
 		},
 	}
+
+
+	if len(config.Config.CoreService.Annotations) > 0 {
+		coreService.SetAnnotations(config.Config.Ingress.Annotations)
+	}
+
 
 	if err := controllerutil.SetControllerReference(svc, coreService, r.scheme); err != nil {
 		return nil, err
@@ -287,7 +297,6 @@ func (r *ReconcileService) ensureIngresses(err error, svc *appsv1alpha1.Service,
 	return nil
 }
 
-// newDeploymentForService creates the deployment for the given coreService
 func (r *ReconcileService) newIngressesForService(svc *appsv1alpha1.Service) ([]*networkingv1beta1.Ingress, error) {
 	labels := r.makeLabels(svc)
 	ingresses := make([]*networkingv1beta1.Ingress, 0)
@@ -298,7 +307,7 @@ func (r *ReconcileService) newIngressesForService(svc *appsv1alpha1.Service) ([]
 		}
 
 		for _, ing := range p.Ingresses {
-			name := names.FormatDash(strings.Join([]string{svc.Name, p.Name,ing.Host}, "-"))
+			name := names.FormatDash(strings.Join([]string{svc.Name, p.Name, ing.Host}, "-"))
 
 			ingress := &networkingv1beta1.Ingress{
 				ObjectMeta: metav1.ObjectMeta{
@@ -315,6 +324,10 @@ func (r *ReconcileService) newIngressesForService(svc *appsv1alpha1.Service) ([]
 						},
 					},
 				},
+			}
+
+			if len(config.Config.Ingress.Annotations) > 0 {
+				ingress.SetAnnotations(config.Config.Ingress.Annotations)
 			}
 
 			if err := controllerutil.SetControllerReference(svc, ingress, r.scheme); err != nil {

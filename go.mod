@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/go-logr/logr v0.1.0
+	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/operator-framework/operator-sdk v0.14.0
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/crypto v0.0.0-20191205180655-e7c4368fe9dd // indirect
