@@ -1,0 +1,9 @@
+.git
+build
+bin
+deploy
+.gitlab-ci.yml
+.gitignore
+scripts
+deploy.yaml
+README.md
