@@ -100,17 +100,17 @@ func (r *ReconcileService) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
-	err = r.ensureDeployment(err, svc, reqLogger.WithValues("Generated.Version", "apps/v1", "Generated.Kind", "Deployment"))
+	err = r.ensureDeployment(svc, reqLogger.WithValues("Generated.Version", "apps/v1", "Generated.Kind", "Deployment"))
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 
-	err = r.ensureService(err, svc, reqLogger.WithValues("Generated.Version", "core/v1", "Generated.Kind", "Service"))
+	err = r.ensureService(svc, reqLogger.WithValues("Generated.Version", "core/v1", "Generated.Kind", "Service"))
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 
-	err = r.ensureIngresses(err, svc, reqLogger.WithValues("Generated.Version", "networking/v1beta1", "Generated.Kind", "Ingress"))
+	err = r.ensureIngresses(svc, reqLogger.WithValues("Generated.Version", "networking/v1beta1", "Generated.Kind", "Ingress"))
 	if err != nil {
 		return reconcile.Result{}, err
 	}

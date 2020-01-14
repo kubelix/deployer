@@ -16,7 +16,7 @@ import (
 	"gitlab.com/klinkert.io/kubelix/deployer/pkg/names"
 )
 
-func (r *ReconcileService) ensureIngresses(err error, svc *appsv1alpha1.Service, reqLogger logr.Logger) error {
+func (r *ReconcileService) ensureIngresses(svc *appsv1alpha1.Service, reqLogger logr.Logger) error {
 	ingresses, err := r.newIngressesForService(svc)
 	if err != nil {
 		return err

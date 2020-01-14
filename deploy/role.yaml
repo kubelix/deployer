@@ -3,7 +3,6 @@ kind: ClusterRole
 metadata:
   creationTimestamp: null
   name: deployer
-  namespace: deployer
 rules:
 - apiGroups:
   - ""

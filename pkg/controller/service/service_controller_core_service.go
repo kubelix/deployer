@@ -13,7 +13,7 @@ import (
 	"gitlab.com/klinkert.io/kubelix/deployer/pkg/config"
 )
 
-func (r *ReconcileService) ensureService(err error, svc *appsv1alpha1.Service, reqLogger logr.Logger) error {
+func (r *ReconcileService) ensureService(svc *appsv1alpha1.Service, reqLogger logr.Logger) error {
 	coreService, err := r.newServiceForService(svc)
 	if err != nil {
 		return err

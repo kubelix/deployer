@@ -14,7 +14,7 @@ import (
 	"gitlab.com/klinkert.io/kubelix/deployer/pkg/config"
 )
 
-func (r *ReconcileService) ensureDeployment(err error, svc *appsv1alpha1.Service, reqLogger logr.Logger) error {
+func (r *ReconcileService) ensureDeployment(svc *appsv1alpha1.Service, reqLogger logr.Logger) error {
 	dep, err := r.newDeploymentForService(svc)
 	if err != nil {
 		return err
