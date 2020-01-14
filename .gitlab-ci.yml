@@ -27,6 +27,7 @@ test-code:
   stage: check
   script:
     - go mod download
+    - go build -o bin/app cmd/manager/main.go
     - go test -v ./...
 
 #test-format:
@@ -41,6 +42,7 @@ test-lint:
   stage: check
   script:
     - go mod download
+    - go build -o bin/app cmd/manager/main.go
     - golangci-lint run
 
 test-build-image:
