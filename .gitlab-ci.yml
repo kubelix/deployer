@@ -89,4 +89,5 @@ deploy-prod:
     - kubectl apply -f deploy/role.yaml
     - kubectl apply -f deploy/service_account.yaml
     - kubectl apply -f deploy/role_binding.yaml
-    - sed 's#REPLACE_IMAGE#'"$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"'#g' deploy/operator.yaml | kubectl apply
+    # - sed 's#REPLACE_IMAGE#'"$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"'#g' deploy/operator.yaml | kubectl apply -f -
+    - sed "s#REPLACE_IMAGE#$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA#g" deploy/operator.yaml | kubectl apply -f -
