@@ -19,8 +19,6 @@ spec:
       containers:
         - name: deployer
           image: REPLACE_IMAGE
-          command:
-          - deployer
           imagePullPolicy: Always
           env:
             - name: WATCH_NAMESPACE
