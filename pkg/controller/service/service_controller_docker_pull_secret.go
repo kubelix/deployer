@@ -47,8 +47,9 @@ func (r *ReconcileService) newDockerPullSecretsForService(svc *appsv1alpha1.Serv
 				Namespace: svc.Namespace,
 				Labels:    labels,
 			},
+			Type: corev1.SecretTypeDockerConfigJson,
 			StringData: map[string]string{
-				".dockerconfigjson": formatDockerPullSecret(reg.Registry, reg.Username, reg.Password),
+				corev1.DockerConfigJsonKey: formatDockerPullSecret(reg.Registry, reg.Username, reg.Password),
 			},
 		}
 
