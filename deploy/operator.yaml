@@ -18,7 +18,7 @@ spec:
       serviceAccountName: deployer
       containers:
         - name: deployer
-          image: REPLACE_IMAGE
+          image: ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}
           imagePullPolicy: Always
           env:
             - name: WATCH_NAMESPACE
@@ -29,3 +29,12 @@ spec:
                   fieldPath: metadata.name
             - name: OPERATOR_NAME
               value: "deployer"
+            - name: CONFIG_FILE
+              value: /etc/deployer/config.yaml
+          volumeMounts:
+            - name: config
+              mountPath: /etc/deployer
+      volumes:
+        - name: config
+          configMap:
+            name: deployer-config

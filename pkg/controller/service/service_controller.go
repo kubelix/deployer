@@ -100,7 +100,12 @@ func (r *ReconcileService) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
-	err = r.ensureDeployment(svc, reqLogger.WithValues("Generated.Version", "apps/v1", "Generated.Kind", "Deployment"))
+	secrets, err := r.ensureDockerPullSecrets(svc, reqLogger.WithValues("Generated.Version", "networking/v1beta1", "Generated.Kind", "Ingress"))
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	err = r.ensureDeployment(svc, secrets, reqLogger.WithValues("Generated.Version", "apps/v1", "Generated.Kind", "Deployment"))
 	if err != nil {
 		return reconcile.Result{}, err
 	}

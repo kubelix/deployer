@@ -14,8 +14,8 @@ import (
 	"gitlab.com/klinkert.io/kubelix/deployer/pkg/config"
 )
 
-func (r *ReconcileService) ensureDeployment(svc *appsv1alpha1.Service, reqLogger logr.Logger) error {
-	dep, err := r.newDeploymentForService(svc)
+func (r *ReconcileService) ensureDeployment(svc *appsv1alpha1.Service, dockerPullSecretNames []string, reqLogger logr.Logger) error {
+	dep, err := r.newDeploymentForService(svc, dockerPullSecretNames)
 	if err != nil {
 		return err
 	}
@@ -28,7 +28,7 @@ func (r *ReconcileService) ensureDeployment(svc *appsv1alpha1.Service, reqLogger
 	return nil
 }
 
-func (r *ReconcileService) newDeploymentForService(svc *appsv1alpha1.Service) (*appsv1.Deployment, error) {
+func (r *ReconcileService) newDeploymentForService(svc *appsv1alpha1.Service, dockerPullSecretNames []string) (*appsv1.Deployment, error) {
 	labels := r.makeLabels(svc)
 
 	dep := &appsv1.Deployment{
@@ -63,6 +63,7 @@ func (r *ReconcileService) newDeploymentForService(svc *appsv1alpha1.Service) (*
 						},
 					},
 					TerminationGracePeriodSeconds: ptrInt64(30),
+					ImagePullSecrets:              secretNamesToReferences(dockerPullSecretNames),
 					Containers: []corev1.Container{
 						{
 							ImagePullPolicy: corev1.PullAlways,
@@ -75,27 +76,24 @@ func (r *ReconcileService) newDeploymentForService(svc *appsv1alpha1.Service) (*
 							Ports:           svc.Spec.Ports.ToPodPorts(),
 
 							/**
-								imagePullSecrets:
-							      - name: nimca-auth-prod-docker-pull
-
-								livenessProbe:
-								  failureThreshold: 3
-								  httpGet:
-									path: /healthz
-									port: app
-									scheme: HTTP
-								  periodSeconds: 10
-								  successThreshold: 1
-								  timeoutSeconds: 1
-								readinessProbe:
-								  failureThreshold: 3
-								  httpGet:
-									path: /healthz
-									port: app
-									scheme: HTTP
-								  periodSeconds: 10
-								  successThreshold: 1
-								  timeoutSeconds: 1
+							livenessProbe:
+							  failureThreshold: 3
+							  httpGet:
+								path: /healthz
+								port: app
+								scheme: HTTP
+							  periodSeconds: 10
+							  successThreshold: 1
+							  timeoutSeconds: 1
+							readinessProbe:
+							  failureThreshold: 3
+							  httpGet:
+								path: /healthz
+								port: app
+								scheme: HTTP
+							  periodSeconds: 10
+							  successThreshold: 1
+							  timeoutSeconds: 1
 							*/
 						},
 					},
@@ -121,4 +119,12 @@ func (r *ReconcileService) newDeploymentForService(svc *appsv1alpha1.Service) (*
 	}
 
 	return dep, nil
+}
+
+func secretNamesToReferences(names []string) []corev1.LocalObjectReference {
+	refs := make([]corev1.LocalObjectReference, 0)
+	for _, name := range names {
+		refs = append(refs, corev1.LocalObjectReference{Name: name})
+	}
+	return refs
 }

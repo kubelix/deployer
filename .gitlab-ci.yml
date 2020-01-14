@@ -81,7 +81,7 @@ deploy-prod:
   script:
     - kubectl -n deployer get secret deployer-docker-pull ||
         kubectl -n deployer create secret docker-registry deployer-docker-pull
-          --docker-server=registry.gitlab.com
+          --docker-server="${CI_REGISTRY}"
           --docker-username="${DOCKER_REGISTRY_USERNAME}"
           --docker-password="${DOCKER_REGISTRY_PASSWORD}"
           --docker-email="gitlab@klinkert.io"
@@ -90,5 +90,5 @@ deploy-prod:
     - kubectl apply -f deploy/role.yaml
     - kubectl apply -f deploy/service_account.yaml
     - kubectl apply -f deploy/role_binding.yaml
-    # - sed 's#REPLACE_IMAGE#'"$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"'#g' deploy/operator.yaml | kubectl apply -f -
-    - sed "s#REPLACE_IMAGE#$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA#g" deploy/operator.yaml | kubectl apply -f -
+    - envsubst < "deploy/config_map.yaml" | kubectl apply -f -
+    - envsubst < "deploy/operator.yaml" | kubectl apply -f -
