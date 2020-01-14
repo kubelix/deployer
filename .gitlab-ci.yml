@@ -79,11 +79,12 @@ deploy-prod:
   environment:
     name: prod
   script:
-    - kubectl get secret deployer-docker-pull || kubectl create secret docker-registry deployer-docker-pull
-        --docker-server=registry.gitlab.com
-        --docker-username="${DOCKER_REGISTRY_USERNAME}"
-        --docker-password="${DOCKER_REGISTRY_PASSWORD}"
-        --docker-email="gitlab@klinkert.io"
+    - kubectl -n deployer get secret deployer-docker-pull ||
+        kubectl -n deployer create secret docker-registry deployer-docker-pull
+          --docker-server=registry.gitlab.com
+          --docker-username="${DOCKER_REGISTRY_USERNAME}"
+          --docker-password="${DOCKER_REGISTRY_PASSWORD}"
+          --docker-email="gitlab@klinkert.io"
     - kubectl apply -f deploy/crds/apps.kubelix.io_services_crd.yaml
     - kubectl apply -f deploy/namespace.yaml
     - kubectl apply -f deploy/role.yaml
