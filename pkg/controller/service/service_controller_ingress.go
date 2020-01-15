@@ -2,7 +2,6 @@ package service
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/go-logr/logr"
 	networkingv1beta1 "k8s.io/api/networking/v1beta1"
@@ -42,7 +41,7 @@ func (r *ReconcileService) newIngressesForService(svc *appsv1alpha1.Service) ([]
 		}
 
 		for _, ing := range p.Ingresses {
-			name := names.FormatDash(strings.Join([]string{svc.Name, p.Name, ing.Host}, "-"))
+			name := names.FormatDashFromParts(svc.Name, p.Name, ing.Host)
 
 			ingress := &networkingv1beta1.Ingress{
 				ObjectMeta: metav1.ObjectMeta{
