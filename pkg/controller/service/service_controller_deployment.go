@@ -12,6 +12,7 @@ import (
 
 	appsv1alpha1 "gitlab.com/klinkert.io/kubelix/deployer/pkg/apis/apps/v1alpha1"
 	"gitlab.com/klinkert.io/kubelix/deployer/pkg/config"
+	"gitlab.com/klinkert.io/kubelix/deployer/pkg/names"
 )
 
 func (r *ReconcileService) ensureDeployment(svc *appsv1alpha1.Service, dockerPullSecretNames []string, reqLogger logr.Logger) error {
@@ -30,6 +31,7 @@ func (r *ReconcileService) ensureDeployment(svc *appsv1alpha1.Service, dockerPul
 
 func (r *ReconcileService) newDeploymentForService(svc *appsv1alpha1.Service, dockerPullSecretNames []string) (*appsv1.Deployment, error) {
 	labels := r.makeLabels(svc)
+	filesConfigMapName := names.FormatDashFromParts(svc.Name, "files")
 
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -74,27 +76,40 @@ func (r *ReconcileService) newDeploymentForService(svc *appsv1alpha1.Service, do
 							Env:             svc.Spec.Env.ToEnvVars(),
 							Resources:       svc.Spec.Resources,
 							Ports:           svc.Spec.Ports.ToPodPorts(),
+							VolumeMounts:    filesToVolumeMounts(svc),
 
 							/**
-							livenessProbe:
-							  failureThreshold: 3
-							  httpGet:
-								path: /healthz
-								port: app
-								scheme: HTTP
-							  periodSeconds: 10
-							  successThreshold: 1
-							  timeoutSeconds: 1
-							readinessProbe:
-							  failureThreshold: 3
-							  httpGet:
-								path: /healthz
-								port: app
-								scheme: HTTP
-							  periodSeconds: 10
-							  successThreshold: 1
-							  timeoutSeconds: 1
+								livenessProbe:
+								  failureThreshold: 3
+								  httpGet:
+									path: /healthz
+									port: app
+									scheme: HTTP
+								  periodSeconds: 10
+								  successThreshold: 1
+								  timeoutSeconds: 1
+								readinessProbe:
+								  failureThreshold: 3
+								  httpGet:
+									path: /healthz
+									port: app
+									scheme: HTTP
+								  periodSeconds: 10
+								  successThreshold: 1
+								  timeoutSeconds: 1
 							*/
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "files",
+							VolumeSource: corev1.VolumeSource{
+								ConfigMap: &corev1.ConfigMapVolumeSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: filesConfigMapName,
+									},
+								},
+							},
 						},
 					},
 				},
@@ -119,6 +134,21 @@ func (r *ReconcileService) newDeploymentForService(svc *appsv1alpha1.Service, do
 	}
 
 	return dep, nil
+}
+
+func filesToVolumeMounts(svc *appsv1alpha1.Service) []corev1.VolumeMount {
+	volumeMounts := make([]corev1.VolumeMount, 0)
+
+	for _, file := range svc.Spec.Files {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      "files",
+			ReadOnly:  true,
+			MountPath: file.Path,
+			SubPath:   file.Name,
+		})
+	}
+
+	return volumeMounts
 }
 
 func secretNamesToReferences(names []string) []corev1.LocalObjectReference {

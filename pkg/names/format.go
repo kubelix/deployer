@@ -20,6 +20,10 @@ func TrimDashes(value string) string {
 	if len(value) > 63 {
 		value = value[:62]
 	}
-
 	return strings.Trim(value, "-")
+}
+
+// FormatDashFromParts takes several string parts, joins them together and formats them correctly
+func FormatDashFromParts(parts ...string) string {
+	return FormatDash(strings.Join(parts, "-"))
 }

@@ -50,10 +50,13 @@ spec:
                 properties:
                   content:
                     type: string
+                  name:
+                    type: string
                   path:
                     type: string
                 required:
                 - content
+                - name
                 - path
                 type: object
               type: array

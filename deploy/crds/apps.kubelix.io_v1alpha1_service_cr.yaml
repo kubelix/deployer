@@ -25,7 +25,8 @@ spec:
     KEY2: value2
 
   files:
-    - path: /config.yaml
+    - name: config
+      path: /config.yaml
       content: |
         key: value
         map:

@@ -41,6 +41,7 @@ type PortIngress struct {
 
 // File defines a file the app needs
 type File struct {
+	Name    string `json:"name"`
 	Path    string `json:"path"`
 	Content string `json:"content"`
 }

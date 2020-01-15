@@ -100,7 +100,12 @@ func (r *ReconcileService) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
-	secrets, err := r.ensureDockerPullSecrets(svc, reqLogger.WithValues("Generated.Version", "networking/v1beta1", "Generated.Kind", "Ingress"))
+	secrets, err := r.ensureDockerPullSecrets(svc, reqLogger.WithValues("Generated.Version", "core/v1", "Generated.Kind", "Secret"))
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	err = r.ensureFilesConfigMap(svc, reqLogger.WithValues("Generated.Version", "core/v1", "Generated.Kind", "ConfigMap"))
 	if err != nil {
 		return reconcile.Result{}, err
 	}

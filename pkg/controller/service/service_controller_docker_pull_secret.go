@@ -3,7 +3,6 @@ package service
 import (
 	"encoding/base64"
 	"fmt"
-	"strings"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -39,7 +38,7 @@ func (r *ReconcileService) newDockerPullSecretsForService(svc *appsv1alpha1.Serv
 	secrets := make([]*corev1.Secret, 0)
 
 	for _, reg := range config.Config.DockerPullSecretes {
-		name := names.FormatDash(strings.Join([]string{svc.Name, "docker-pull", reg.Registry}, "-"))
+		name := names.FormatDashFromParts(svc.Name, "docker-pull", reg.Registry)
 
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
