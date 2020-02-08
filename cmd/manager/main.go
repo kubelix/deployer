@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/kubelix/deployer/pkg/apis"
+	deployerConfig "github.com/kubelix/deployer/pkg/config"
 	"github.com/kubelix/deployer/pkg/controller"
 	"github.com/kubelix/deployer/version"
 
@@ -99,6 +100,9 @@ func main() {
 		log.Error(err, "")
 		os.Exit(1)
 	}
+
+	log.Info("Loading configs")
+	deployerConfig.Init()
 
 	log.Info("Registering Components.")
 

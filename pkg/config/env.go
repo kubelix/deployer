@@ -16,13 +16,12 @@ var Env envConfig
 // Config file content
 var Config RootConfig
 
-func init() {
+func Init() {
 	envconfig.MustProcess("", &Env)
 
 	cfg, err := Load(Env.ConfigFile)
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	Config = *cfg
 }

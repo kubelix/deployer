@@ -1,5 +1,6 @@
 package config
 
+// NewConfig instantiates a new config instance with optional default values
 func NewConfig() *RootConfig {
 	return &RootConfig{
 		CoreService: CoreServiceConfig{
