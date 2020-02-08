@@ -15,6 +15,9 @@ func Checksum(spec interface{}) (string, error) {
 	}
 
 	sum := md5.New()
-	sum.Write(b)
+	_, err = sum.Write(b)
+	if err != nil {
+		return "", fmt.Errorf("failed to write content to checksum: %v", err)
+	}
 	return hex.EncodeToString(sum.Sum(nil)), nil
 }
