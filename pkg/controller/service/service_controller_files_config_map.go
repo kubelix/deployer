@@ -20,7 +20,7 @@ func (r *ReconcileService) ensureFilesConfigMap(svc *appsv1alpha1.Service, reqLo
 	}
 
 	depName := types.NamespacedName{Name: config.Name, Namespace: config.Namespace}
-	if err := r.ensureObject(reqLogger, config, depName); err != nil {
+	if err := r.ensureObject(reqLogger, svc, config, depName); err != nil {
 		return fmt.Errorf("failed to handle secret: %v", err)
 	}
 

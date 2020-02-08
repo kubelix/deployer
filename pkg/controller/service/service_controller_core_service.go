@@ -20,7 +20,7 @@ func (r *ReconcileService) ensureService(svc *appsv1alpha1.Service, reqLogger lo
 	}
 
 	serviceName := types.NamespacedName{Name: coreService.Name, Namespace: coreService.Namespace}
-	if err := r.ensureObject(reqLogger, coreService, serviceName); err != nil {
+	if err := r.ensureObject(reqLogger, svc, coreService, serviceName); err != nil {
 		return fmt.Errorf("failed to handle service: %v", err)
 	}
 

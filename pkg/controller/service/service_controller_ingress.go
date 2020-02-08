@@ -23,7 +23,7 @@ func (r *ReconcileService) ensureIngresses(svc *appsv1alpha1.Service, reqLogger 
 
 	for _, ingress := range ingresses {
 		depName := types.NamespacedName{Name: ingress.Name, Namespace: ingress.Namespace}
-		if err := r.ensureObject(reqLogger, ingress, depName); err != nil {
+		if err := r.ensureObject(reqLogger, svc, ingress, depName); err != nil {
 			return fmt.Errorf("failed to handle ingress: %v", err)
 		}
 	}

@@ -25,7 +25,7 @@ func (r *ReconcileService) ensureDockerPullSecrets(svc *appsv1alpha1.Service, re
 
 	for _, secret := range secrets {
 		depName := types.NamespacedName{Name: secret.Name, Namespace: secret.Namespace}
-		if err := r.ensureObject(reqLogger, secret, depName); err != nil {
+		if err := r.ensureObject(reqLogger, svc, secret, depName); err != nil {
 			return nil, fmt.Errorf("failed to handle secret: %v", err)
 		}
 		names = append(names, secret.Name)
