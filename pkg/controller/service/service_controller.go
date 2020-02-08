@@ -150,6 +150,7 @@ func (r *ReconcileService) ensureObject(reqLogger logr.Logger, svc *appsv1alpha1
 		reqLogger.Info("Creating object", "Type.Namespace", name.Namespace, "Type.Name", name.Name)
 		err = r.client.Create(context.TODO(), obj)
 		if err != nil {
+			reqLogger.Error(err, fmt.Sprintf("Object: %#v", obj))
 			return fmt.Errorf("failed to create object: %v", err)
 		}
 		return nil

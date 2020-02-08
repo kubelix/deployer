@@ -29,5 +29,5 @@ func mergeLabels(labels1, labels2 map[string]string) map[string]string {
 }
 
 const (
-	dockerConfigContent = `{"auths": {"registry.gitlab.com": {"auth": "%s"}}}`
+	dockerConfigContent = `{"auths": {"%s": {"auth": "%s"}}}`
 )

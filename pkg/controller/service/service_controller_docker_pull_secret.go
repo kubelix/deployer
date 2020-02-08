@@ -64,5 +64,5 @@ func (r *ReconcileService) newDockerPullSecretsForService(svc *appsv1alpha1.Serv
 
 func formatDockerPullSecret(registry, username, password string) string {
 	auth := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", username, password)))
-	return base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf(dockerConfigContent, auth)))
+	return base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf(dockerConfigContent, registry, auth)))
 }
