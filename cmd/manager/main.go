@@ -12,9 +12,9 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
 
-	"gitlab.com/klinkert.io/kubelix/deployer/pkg/apis"
-	"gitlab.com/klinkert.io/kubelix/deployer/pkg/controller"
-	"gitlab.com/klinkert.io/kubelix/deployer/version"
+	"github.com/kubelix/deployer/pkg/apis"
+	"github.com/kubelix/deployer/pkg/controller"
+	"github.com/kubelix/deployer/version"
 
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	kubemetrics "github.com/operator-framework/operator-sdk/pkg/kube-metrics"

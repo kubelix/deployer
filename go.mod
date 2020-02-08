@@ -1,4 +1,4 @@
-module gitlab.com/klinkert.io/kubelix/deployer
+module github.com/kubelix/deployer
 
 go 1.13
 

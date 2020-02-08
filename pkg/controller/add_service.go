@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"gitlab.com/klinkert.io/kubelix/deployer/pkg/controller/service"
+	"github.com/kubelix/deployer/pkg/controller/service"
 )
 
 func init() {

@@ -10,9 +10,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	appsv1alpha1 "gitlab.com/klinkert.io/kubelix/deployer/pkg/apis/apps/v1alpha1"
-	"gitlab.com/klinkert.io/kubelix/deployer/pkg/config"
-	"gitlab.com/klinkert.io/kubelix/deployer/pkg/names"
+	appsv1alpha1 "github.com/kubelix/deployer/pkg/apis/apps/v1alpha1"
+	"github.com/kubelix/deployer/pkg/config"
+	"github.com/kubelix/deployer/pkg/names"
 )
 
 func (r *ReconcileService) ensureIngresses(svc *appsv1alpha1.Service, reqLogger logr.Logger) error {

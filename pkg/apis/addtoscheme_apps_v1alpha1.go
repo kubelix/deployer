@@ -1,7 +1,7 @@
 package apis
 
 import (
-	"gitlab.com/klinkert.io/kubelix/deployer/pkg/apis/apps/v1alpha1"
+	"github.com/kubelix/deployer/pkg/apis/apps/v1alpha1"
 )
 
 func init() {

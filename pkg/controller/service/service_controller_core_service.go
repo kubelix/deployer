@@ -9,8 +9,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	appsv1alpha1 "gitlab.com/klinkert.io/kubelix/deployer/pkg/apis/apps/v1alpha1"
-	"gitlab.com/klinkert.io/kubelix/deployer/pkg/config"
+	appsv1alpha1 "github.com/kubelix/deployer/pkg/apis/apps/v1alpha1"
+	"github.com/kubelix/deployer/pkg/config"
 )
 
 func (r *ReconcileService) ensureService(svc *appsv1alpha1.Service, reqLogger logr.Logger) error {
