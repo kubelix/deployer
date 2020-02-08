@@ -143,11 +143,11 @@ func (r *ReconcileService) makeLabels(svc *appsv1alpha1.Service) map[string]stri
 	})
 }
 
-func (r *ReconcileService) ensureObject(reqLogger logr.Logger, obj runtime.Object, name types.NamespacedName) error {
+func (r *ReconcileService) ensureObject(reqLogger logr.Logger, svc *appsv1alpha1.Service, obj runtime.Object, name types.NamespacedName) error {
 	found := obj.DeepCopyObject()
 	err := r.client.Get(context.TODO(), name, found)
 	if err != nil && errors.IsNotFound(err) {
-		reqLogger.Info("Creating object", "Pod.Namespace", name.Namespace, "Pod.Name", name.Name)
+		reqLogger.Info("Creating object", "Type.Namespace", name.Namespace, "Type.Name", name.Name)
 		err = r.client.Create(context.TODO(), obj)
 		if err != nil {
 			return fmt.Errorf("failed to create object: %v", err)
@@ -157,7 +157,20 @@ func (r *ReconcileService) ensureObject(reqLogger logr.Logger, obj runtime.Objec
 		return err
 	}
 
-	reqLogger.Info("Updating existing object", "Pod.Namespace", name.Namespace, "Pod.Name", name.Name)
+	kind := obj.GetObjectKind().GroupVersionKind().String()
+	sumKey := fmt.Sprintf("%s/%s/%s", kind, name.Namespace, name.Name)
+	sum, err := Checksum(obj)
+	if err != nil {
+		return fmt.Errorf("failed to get checksum of deployment body: %v", err)
+	}
+
+	if oldSum, ok := svc.Status.Checksums[sumKey]; ok && oldSum == sum {
+		reqLogger.Info("Checksums of old and new object match, do not update", "Type.Namespace", name.Namespace, "Type.Name", name.Name)
+		return nil
+	}
+	svc.Status.Checksums[sumKey] = sum
+
+	reqLogger.Info("Updating existing object", "Type.Namespace", name.Namespace, "Type.Name", name.Name)
 
 	err = r.client.Update(context.TODO(), obj)
 	if err != nil {
@@ -168,7 +181,7 @@ func (r *ReconcileService) ensureObject(reqLogger logr.Logger, obj runtime.Objec
 			}
 
 			// as we have deleted the object we now can safely recreate it
-			return r.ensureObject(reqLogger, obj, name)
+			return r.ensureObject(reqLogger, svc, obj, name)
 		}
 		return fmt.Errorf("failed to update object: %v", err)
 	}

@@ -22,7 +22,7 @@ func (r *ReconcileService) ensureDeployment(svc *appsv1alpha1.Service, dockerPul
 	}
 
 	depName := types.NamespacedName{Name: dep.Name, Namespace: dep.Namespace}
-	if err := r.ensureObject(reqLogger, dep, depName); err != nil {
+	if err := r.ensureObject(reqLogger, svc, dep, depName); err != nil {
 		return fmt.Errorf("failed to handle deployment: %v", err)
 	}
 
@@ -40,7 +40,7 @@ func (r *ReconcileService) newDeploymentForService(svc *appsv1alpha1.Service, do
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
-			RevisionHistoryLimit: ptrInt32(10),
+			RevisionHistoryLimit: ptrInt32(3),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},

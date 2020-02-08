@@ -47,7 +47,9 @@ type File struct {
 }
 
 // ServiceStatus defines the observed state of Service
-type ServiceStatus struct{}
+type ServiceStatus struct {
+	Checksums map[string]string `json:"checksums"`
+}
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
