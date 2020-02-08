@@ -47,7 +47,7 @@ func (r *ReconcileService) newDockerPullSecretsForService(svc *appsv1alpha1.Serv
 				Labels:    labels,
 			},
 			Type: corev1.SecretTypeDockerConfigJson,
-			StringData: map[string]string{
+			Data: map[string][]byte{
 				corev1.DockerConfigJsonKey: formatDockerPullSecret(reg.Registry, reg.Username, reg.Password),
 			},
 		}
@@ -62,7 +62,9 @@ func (r *ReconcileService) newDockerPullSecretsForService(svc *appsv1alpha1.Serv
 	return secrets, nil
 }
 
-func formatDockerPullSecret(registry, username, password string) string {
+func formatDockerPullSecret(registry, username, password string) []byte {
 	auth := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v:%v", username, password)))
-	return base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf(dockerConfigContent, registry, auth)))
+	dst := make([]byte, 0)
+	base64.StdEncoding.Encode(dst, []byte(fmt.Sprintf(dockerConfigContent, registry, auth)))
+	return dst
 }
