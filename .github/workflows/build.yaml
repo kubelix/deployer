@@ -3,18 +3,17 @@ on:
     branches:
       - master
     tags:
-      - *
+      - "*"
 
 name: Build
 jobs:
   build:
-    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
       - name: Publish to Registry
         uses: HurricanKai/Publish-Docker-Github-Action@master
-        if: contains(github.ref, 'refs/tags/v') || github.ref == "master"
+        if: contains(github.ref, 'refs/tags/v') || github.ref == 'master'
         with:
           name: kubelix/deployer
           username: ${{ secrets.DOCKER_USERNAME }}
