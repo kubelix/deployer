@@ -165,6 +165,10 @@ func (r *ReconcileService) ensureObject(reqLogger logr.Logger, svc *appsv1alpha1
 		return fmt.Errorf("failed to get checksum of deployment body: %v", err)
 	}
 
+	if svc.Status.Checksums == nil {
+		svc.Status.Checksums = map[string]string{}
+	}
+
 	if oldSum, ok := svc.Status.Checksums[sumKey]; ok && oldSum == sum {
 		reqLogger.Info("Checksums of old and new object match, do not update", "Type.Namespace", name.Namespace, "Type.Name", name.Name)
 		return nil
