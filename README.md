@@ -1,8 +1,6 @@
 # kubelix deployer
 
 ## TODO
-
-- [ ] Store checksums in service status to prevent unnecessary updates of deployment
 - [ ] Liveness & Readiness probes
 
 ## Assumptions / usage
