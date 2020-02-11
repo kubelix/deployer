@@ -51,14 +51,13 @@ jobs:
 
   publish-chart:
     docker:
-      # we use the redis image cause it's an alpine one and does have git and ssh installed
-      - image: circleci/redis:alpine
+      - image: circleci/golang:1.13
     steps:
       - checkout
       - run:
           name: Replace version variables
           command: |
-            apk add gettext
+            sudo apt-get install gettext -y
             export REPLACE_TAG=$CIRCLE_TAG
             cat charts/deployer/Chart.yaml | envsubst '${REPLACE_TAG}' | tee charts/deployer/Chart.yaml
             cat charts/deployer/values.yaml | envsubst '${REPLACE_TAG}' | tee charts/deployer/values.yaml
@@ -67,7 +66,7 @@ jobs:
           environment:
             GITHUB_PAGES_REPO: kubelix/helm-charts
             HELM_VERSION: 2.16.1
-          command: wget -O - https://raw.githubusercontent.com/kubelix/helm-github-pages/master/publish.sh | sh
+          command: wget -O - https://raw.githubusercontent.com/kubelix/helm-github-pages/master/publish.sh | bash
 
 workflows:
   version: 2
