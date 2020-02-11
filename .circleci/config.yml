@@ -1,12 +1,11 @@
 version: 2
 jobs:
-  build:
+  test:
     docker:
       - image: circleci/golang:1.13
 
     steps:
       - checkout
-      - setup_remote_docker
 
       - run:
           name: install dependencies
@@ -22,6 +21,14 @@ jobs:
           command: |
             curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(go env GOPATH)/bin latest
             golangci-lint run
+
+  build:
+    docker:
+      - image: circleci/golang:1.13
+
+    steps:
+      - checkout
+      - setup_remote_docker
 
       - deploy:
           name: push docker images
@@ -51,8 +58,10 @@ jobs:
           name: Replace version variables
           command: |
             apk add gettext
-            export REPLACE_TAG=$CIRCLE_TAG
-            envsubst '${REPLACE_TAG}' <infile
+            # export REPLACE_TAG=$CIRCLE_TAG
+            export REPLACE_TAG=0.1.0
+            cat charts/deployer/Chart.yaml | envsubst '${REPLACE_TAG}' | tee charts/deployer/Chart.yaml
+            cat charts/deployer/values.yaml | envsubst '${REPLACE_TAG}' | tee charts/deployer/values.yaml
       - run:
           name: helm-github-pages
           environment:
@@ -64,16 +73,21 @@ workflows:
   version: 2
   build:
     jobs:
+      - test
       - build:
+          requires:
+            - test
           context: docker
           filters:
-            tags:
-              only: /.*/
             branches:
+              only: master
+            tags:
               only: /.*/
       - publish-chart:
-          filters:
-            tags:
-              only: /.*/
           requires:
             - build
+          filters:
+#            branches:
+#              ignore: /.*/
+            tags:
+              only: /.*/
