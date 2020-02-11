@@ -58,8 +58,7 @@ jobs:
           name: Replace version variables
           command: |
             apk add gettext
-            # export REPLACE_TAG=$CIRCLE_TAG
-            export REPLACE_TAG=0.1.0
+            export REPLACE_TAG=$CIRCLE_TAG
             cat charts/deployer/Chart.yaml | envsubst '${REPLACE_TAG}' | tee charts/deployer/Chart.yaml
             cat charts/deployer/values.yaml | envsubst '${REPLACE_TAG}' | tee charts/deployer/values.yaml
       - run:
@@ -73,7 +72,12 @@ workflows:
   version: 2
   build:
     jobs:
-      - test
+      - test:
+          filters:
+            branches:
+              only: /.*/
+            tags:
+              only: /.*/
       - build:
           requires:
             - test
@@ -87,7 +91,7 @@ workflows:
           requires:
             - build
           filters:
-#            branches:
-#              ignore: /.*/
+            branches:
+              ignore: /.*/
             tags:
               only: /.*/
