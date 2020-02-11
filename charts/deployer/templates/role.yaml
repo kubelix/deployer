@@ -3,7 +3,7 @@ kind: ClusterRole
 metadata:
   name: {{ include "deployer.fullname" . }}
   labels:
-{{ include "deployer.labels" . | nindent 4 }}
+{{ include "deployer.labels" . | indent 4 }}
 rules:
 - apiGroups:
   - ""
