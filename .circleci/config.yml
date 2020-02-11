@@ -51,7 +51,8 @@ jobs:
 
   publish-chart:
     docker:
-      - image: alpine
+      # we use the redis image cause it's an alpine one and does have git and ssh installed
+      - image: circleci/redis:alpine
     steps:
       - checkout
       - run:
