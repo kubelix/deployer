@@ -42,6 +42,24 @@ jobs:
               docker push ${DOCKER_REPO}:${CIRCLE_TAG}
             fi
 
+  publish-chart:
+    docker:
+      - image: alpine
+    steps:
+      - checkout
+      - run:
+          name: Replace version variables
+          command: |
+            apk add gettext
+            export REPLACE_TAG=$CIRCLE_TAG
+            envsubst '${REPLACE_TAG}' <infile
+      - run:
+          name: helm-github-pages
+          environment:
+            GITHUB_PAGES_REPO: kubelix/helm-charts
+            HELM_VERSION: 2.16.1
+          command: wget -O - https://raw.githubusercontent.com/kubelix/helm-github-pages/master/publish.sh | sh
+
 workflows:
   version: 2
   build:
@@ -53,3 +71,9 @@ workflows:
               only: /.*/
             branches:
               only: /.*/
+      - publish-chart:
+          filters:
+            tags:
+              only: /.*/
+          requires:
+            - build
