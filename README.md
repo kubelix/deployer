@@ -52,10 +52,10 @@ spec:
 
 From this service specification the following objects would be created and managed:
 
-- 1 `appsv1/deployment` with the specified container, environment variables, config files and resources
-- 1 `corev1/service` with the ports
-- 1 `corev1/configMap` with the config files specified
-- N `networkingv1beta1/ingress` for each ingress specs on the ports
+- `appsv1/deployment` with the specified container, environment variables, config files and resources
+- `corev1/service` with the ports
+- `corev1/configMap` with the config files specified
+- `networkingv1beta1/ingress` for each ingress specs on the ports
 
 
 ## docker image
