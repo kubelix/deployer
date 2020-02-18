@@ -23,7 +23,9 @@ image:
   tag: "${REPLACE_TAG}"
   pullPolicy: IfNotPresent
 
+# list of secret names containing docker-pull-secrets
 imagePullSecrets: []
+
 nameOverride: ""
 fullnameOverride: ""
 

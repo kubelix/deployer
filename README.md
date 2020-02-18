@@ -58,6 +58,23 @@ From this service specification the following objects would be created and manag
 - N `networkingv1beta1/ingress` for each ingress specs on the ports
 
 
+## docker image
+
+The docker image is automatically build and published at https://hub.docker.com/r/kubelix/deployer .
+You can either use the latest tag or a specific git tag.
+
+
+## helm chart
+
+There is a helm chart which is hosted at github pages:
+
+```bash
+helm repo add kubelix https://kubelix.github.io/helm-charts/
+helm search repo deployer
+helm install kubelix/deployer
+```
+
+
 ## Assumptions / usage
 
 - Each service only consists of a single container
