@@ -115,14 +115,16 @@ func (r *ReconcileService) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
-	err = r.ensureService(svc, reqLogger.WithValues("Generated.Version", "core/v1", "Generated.Kind", "Service"))
-	if err != nil {
-		return reconcile.Result{}, err
-	}
+	if len(svc.Spec.Ports) > 0 {
+		err = r.ensureService(svc, reqLogger.WithValues("Generated.Version", "core/v1", "Generated.Kind", "Service"))
+		if err != nil {
+			return reconcile.Result{}, err
+		}
 
-	err = r.ensureIngresses(svc, reqLogger.WithValues("Generated.Version", "networking/v1beta1", "Generated.Kind", "Ingress"))
-	if err != nil {
-		return reconcile.Result{}, err
+		err = r.ensureIngresses(svc, reqLogger.WithValues("Generated.Version", "networking/v1beta1", "Generated.Kind", "Ingress"))
+		if err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	return reconcile.Result{}, nil

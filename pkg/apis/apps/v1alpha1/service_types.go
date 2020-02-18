@@ -28,6 +28,7 @@ type PortList []Port
 type Port struct {
 	Name      string        `json:"name"`
 	Container uint16        `json:"container"`
+	Service   uint16        `json:"service,omitempty"`
 	Ingresses []PortIngress `json:"ingresses,omitempty"`
 }
 

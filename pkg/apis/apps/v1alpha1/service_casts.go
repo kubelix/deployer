@@ -37,7 +37,7 @@ func (p PortList) ToServicePorts() []corev1.ServicePort {
 	ports := make([]corev1.ServicePort, 0)
 	for _, port := range p {
 		ports = append(ports, corev1.ServicePort{
-			Port:       int32(port.Container),
+			Port:       int32(port.Service),
 			Name:       port.Name,
 			TargetPort: intstr.FromString(port.Name),
 		})
