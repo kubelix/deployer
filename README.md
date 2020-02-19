@@ -111,4 +111,4 @@ managed services.
 - [ ] Liveness & Readiness probes
 - [ ] cleanup objects where the related config is removed
         (i.e. by removing all of the ports the service and ingresses should be removed)
-- [ ] 
+- [ ] support sidecar containers?
