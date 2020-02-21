@@ -31,13 +31,13 @@ func TestChecksum(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := Checksum(tt.args.spec)
+			got, err := checksum(tt.args.spec)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Checksum() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("checksum() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("Checksum() got = %v, want %v", got, tt.want)
+				t.Errorf("checksum() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

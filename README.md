@@ -86,6 +86,7 @@ helm install kubelix/deployer
     - config files
     - CLI args
 - If you need to replace variables in the service custom resource
+- Sidecars are kind of an anti-pattern? Use dedicated deployments for them. 
 
 
 ## Private docker registries
@@ -112,3 +113,4 @@ managed services.
 - [ ] cleanup objects where the related config is removed
         (i.e. by removing all of the ports the service and ingresses should be removed)
 - [ ] support sidecar containers?
+- [ ] Service accounts

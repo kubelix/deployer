@@ -3,6 +3,7 @@ module github.com/kubelix/deployer
 go 1.13
 
 require (
+	github.com/aklinkert/go-stringslice v1.0.0
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
 	github.com/go-logr/logr v0.1.0
 	github.com/kelseyhightower/envconfig v1.4.0

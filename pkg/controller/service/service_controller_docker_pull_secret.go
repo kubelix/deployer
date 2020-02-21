@@ -15,22 +15,19 @@ import (
 	"github.com/kubelix/deployer/pkg/names"
 )
 
-func (r *ReconcileService) ensureDockerPullSecrets(svc *appsv1alpha1.Service, reqLogger logr.Logger) ([]string, error) {
+func (r *ReconcileService) ensureDockerPullSecrets(svc *appsv1alpha1.Service, reqLogger logr.Logger) ([]*corev1.Secret, error) {
 	secrets, err := r.newDockerPullSecretsForService(svc)
 	if err != nil {
 		return nil, err
 	}
-
-	names := make([]string, 0)
 
 	for _, secret := range secrets {
 		depName := types.NamespacedName{Name: secret.Name, Namespace: secret.Namespace}
 		if err := r.ensureObject(reqLogger, svc, secret, depName); err != nil {
 			return nil, fmt.Errorf("failed to handle secret: %v", err)
 		}
-		names = append(names, secret.Name)
 	}
-	return names, nil
+	return secrets, nil
 }
 
 func (r *ReconcileService) newDockerPullSecretsForService(svc *appsv1alpha1.Service) ([]*corev1.Secret, error) {
@@ -41,6 +38,10 @@ func (r *ReconcileService) newDockerPullSecretsForService(svc *appsv1alpha1.Serv
 		name := names.FormatDashFromParts(svc.Name, "docker-pull", reg.Registry)
 
 		secret := &corev1.Secret{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: corev1.SchemeGroupVersion.String(),
+				Kind:       "Secret",
+			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      name,
 				Namespace: svc.Namespace,

@@ -15,20 +15,20 @@ import (
 	"github.com/kubelix/deployer/pkg/names"
 )
 
-func (r *ReconcileService) ensureIngresses(svc *appsv1alpha1.Service, reqLogger logr.Logger) error {
+func (r *ReconcileService) ensureIngresses(svc *appsv1alpha1.Service, reqLogger logr.Logger) ([]*networkingv1beta1.Ingress, error) {
 	ingresses, err := r.newIngressesForService(svc)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	for _, ingress := range ingresses {
 		depName := types.NamespacedName{Name: ingress.Name, Namespace: ingress.Namespace}
 		if err := r.ensureObject(reqLogger, svc, ingress, depName); err != nil {
-			return fmt.Errorf("failed to handle ingress: %v", err)
+			return nil, fmt.Errorf("failed to handle ingress: %v", err)
 		}
 	}
 
-	return nil
+	return ingresses, nil
 }
 
 func (r *ReconcileService) newIngressesForService(svc *appsv1alpha1.Service) ([]*networkingv1beta1.Ingress, error) {
@@ -44,6 +44,10 @@ func (r *ReconcileService) newIngressesForService(svc *appsv1alpha1.Service) ([]
 			name := names.FormatDashFromParts(svc.Name, p.Name, ing.Host)
 
 			ingress := &networkingv1beta1.Ingress{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: networkingv1beta1.SchemeGroupVersion.String(),
+					Kind:       "Ingress",
+				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
 					Namespace: svc.Namespace,

@@ -30,4 +30,5 @@ func mergeLabels(labels1, labels2 map[string]string) map[string]string {
 
 const (
 	dockerConfigContent = `{"auths": {"%s": {"auth": "%s"}}}`
+	fieldIsImmutable = "field is immutable"
 )

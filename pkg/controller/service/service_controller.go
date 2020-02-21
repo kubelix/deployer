@@ -47,21 +47,21 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	createdItems := []runtime.Object{
-		//&appsv1.Deployment{},
-		//&corev1.Service{},
-		//&networkingv1beta1.Ingress{},
-	}
-
-	for _, t := range createdItems {
-		err = c.Watch(&source.Kind{Type: t}, &handler.EnqueueRequestForOwner{
-			IsController: true,
-			OwnerType:    &appsv1alpha1.Service{},
-		})
-		if err != nil {
-			return err
-		}
-	}
+	//createdItems := []runtime.Object{
+	//	//&appsv1.Deployment{},
+	//	//&corev1.Service{},
+	//	//&networkingv1beta1.Ingress{},
+	//}
+	//
+	//for _, t := range createdItems {
+	//	err = c.Watch(&source.Kind{Type: t}, &handler.EnqueueRequestForOwner{
+	//		IsController: true,
+	//		OwnerType:    &appsv1alpha1.Service{},
+	//	})
+	//	if err != nil {
+	//		return err
+	//	}
+	//}
 
 	return nil
 }
@@ -86,7 +86,7 @@ func (r *ReconcileService) Reconcile(request reconcile.Request) (reconcile.Resul
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling Service")
 
-	// Fetch the Service svc
+	// Fetch the Service object
 	svc := &appsv1alpha1.Service{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, svc)
 	if err != nil {
@@ -100,34 +100,49 @@ func (r *ReconcileService) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
-	secrets, err := r.ensureDockerPullSecrets(svc, reqLogger.WithValues("Generated.Version", "core/v1", "Generated.Kind", "Secret"))
+	generatedObjects := make([]runtime.Object, 0)
+
+	secrets, err := r.ensureDockerPullSecrets(svc, reqLogger)
 	if err != nil {
 		return reconcile.Result{}, err
+	}
+	for _, s := range secrets {
+		generatedObjects = append(generatedObjects, s)
 	}
 
-	err = r.ensureFilesConfigMap(svc, reqLogger.WithValues("Generated.Version", "core/v1", "Generated.Kind", "ConfigMap"))
+	configMap, err := r.ensureFilesConfigMap(svc, reqLogger)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
+	generatedObjects = append(generatedObjects, configMap)
 
-	err = r.ensureDeployment(svc, secrets, reqLogger.WithValues("Generated.Version", "apps/v1", "Generated.Kind", "Deployment"))
+	dep, err := r.ensureDeployment(svc, secrets, reqLogger)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
+	generatedObjects = append(generatedObjects, dep)
 
 	if len(svc.Spec.Ports) > 0 {
-		err = r.ensureService(svc, reqLogger.WithValues("Generated.Version", "core/v1", "Generated.Kind", "Service"))
+		coreService, err := r.ensureService(svc, reqLogger)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
+		generatedObjects = append(generatedObjects, coreService)
 
-		err = r.ensureIngresses(svc, reqLogger.WithValues("Generated.Version", "networking/v1beta1", "Generated.Kind", "Ingress"))
+		ingresses, err := r.ensureIngresses(svc, reqLogger)
 		if err != nil {
 			return reconcile.Result{}, err
+		}
+		for _, i := range ingresses {
+			generatedObjects = append(generatedObjects, i)
 		}
 	}
 
-	return reconcile.Result{}, nil
+	if err := r.cleanupManagedObjects(reqLogger, svc, generatedObjects); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	return reconcile.Result{}, r.update(reqLogger, svc)
 }
 
 func (r *ReconcileService) makeKubelixLabels(svc *appsv1alpha1.Service) map[string]string {
@@ -146,42 +161,48 @@ func (r *ReconcileService) makeLabels(svc *appsv1alpha1.Service) map[string]stri
 }
 
 func (r *ReconcileService) ensureObject(reqLogger logr.Logger, svc *appsv1alpha1.Service, obj runtime.Object, name types.NamespacedName) error {
-	found := obj.DeepCopyObject()
-	err := r.client.Get(context.TODO(), name, found)
-	if err != nil && errors.IsNotFound(err) {
-		reqLogger.Info("Creating object", "Type.Namespace", name.Namespace, "Type.Name", name.Name)
-		err = r.client.Create(context.TODO(), obj)
-		if err != nil {
-			reqLogger.Error(err, fmt.Sprintf("Object: %#v", obj))
-			return fmt.Errorf("failed to create object: %v", err)
-		}
+	objGVK := obj.GetObjectKind().GroupVersionKind()
+	reqLogger = reqLogger.WithValues(
+		"Generated.Version", objGVK.GroupVersion(),
+		"Generated.Kind", objGVK.GroupKind().Kind,
+		"Type.Namespace", name.Namespace,
+		"Type.Name", name.Name,
+	)
+
+	defer func() {
+		obj.GetObjectKind().SetGroupVersionKind(objGVK)
+	}()
+
+	err, match := r.setManagedObject(reqLogger, svc, obj, name)
+	if err != nil {
+		return err
+	} else if match {
+		reqLogger.Info("Checksums of old and new object match, do not update")
 		return nil
-	} else if err != nil {
+	}
+
+	found := obj.DeepCopyObject()
+	err = r.client.Get(context.TODO(), name, found)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			reqLogger.Info("Creating object")
+			err = r.client.Create(context.TODO(), obj)
+			if err != nil {
+				reqLogger.Error(err, fmt.Sprintf("Object: %#v", obj))
+				return fmt.Errorf("failed to create object: %v", err)
+			}
+
+			return r.update(reqLogger, svc)
+		}
+
 		return err
 	}
 
-	kind := obj.GetObjectKind().GroupVersionKind().String()
-	sumKey := fmt.Sprintf("%s/%s/%s", kind, name.Namespace, name.Name)
-	sum, err := Checksum(obj)
-	if err != nil {
-		return fmt.Errorf("failed to get checksum of deployment body: %v", err)
-	}
-
-	if svc.Status.Checksums == nil {
-		svc.Status.Checksums = map[string]string{}
-	}
-
-	if oldSum, ok := svc.Status.Checksums[sumKey]; ok && oldSum == sum {
-		reqLogger.Info("Checksums of old and new object match, do not update", "Type.Namespace", name.Namespace, "Type.Name", name.Name)
-		return nil
-	}
-	svc.Status.Checksums[sumKey] = sum
-
-	reqLogger.Info("Updating existing object", "Type.Namespace", name.Namespace, "Type.Name", name.Name)
+	reqLogger.Info("Updating existing object")
 
 	err = r.client.Update(context.TODO(), obj)
 	if err != nil {
-		if strings.Contains(err.Error(), "field is immutable") {
+		if strings.Contains(err.Error(), fieldIsImmutable) {
 			errDelete := r.client.Delete(context.TODO(), obj)
 			if errDelete != nil {
 				return fmt.Errorf("failed to delete object after update was not permitted (field is immutable): %v", errDelete)
@@ -192,5 +213,91 @@ func (r *ReconcileService) ensureObject(reqLogger logr.Logger, svc *appsv1alpha1
 		}
 		return fmt.Errorf("failed to update object: %v", err)
 	}
+
+	return r.update(reqLogger, svc)
+}
+
+func (r *ReconcileService) update(reqLogger logr.Logger, svc *appsv1alpha1.Service) error {
+	if err := r.client.Status().Update(context.TODO(), svc); err != nil {
+		return fmt.Errorf("failed to update status: %v", err)
+	}
+
+	if err := r.client.Update(context.TODO(), svc); err != nil {
+		return fmt.Errorf("failed to update: %v", err)
+	}
+
+	name := types.NamespacedName{Namespace: svc.Namespace, Name: svc.Name}
+	if err := r.client.Get(context.TODO(), name, svc); err != nil {
+		return fmt.Errorf("failed to reload service from API: %v", err)
+	}
+
+	return nil
+}
+
+func (r *ReconcileService) setManagedObject(reqLogger logr.Logger, svc *appsv1alpha1.Service, obj runtime.Object, name types.NamespacedName) (error, bool) {
+	checksum, err := checksum(obj)
+	if err != nil {
+		return fmt.Errorf("failed to get checksum of object (%s %s): %v", obj, name, err), false
+	}
+
+	managedObject := svc.Status.ManagedObjects.Find(obj, name)
+	if managedObject == nil {
+		svc.Status.ManagedObjects.Add(obj, name, checksum)
+		return nil, false
+	}
+
+	if managedObject.Checksum == checksum {
+		return nil, true
+	}
+
+	return nil, false
+}
+
+func (r *ReconcileService) cleanupManagedObjects(reqLogger logr.Logger, svc *appsv1alpha1.Service, generatedObjects []runtime.Object) error {
+	newList := appsv1alpha1.ManagedObjectList{}
+	newList.FromObjectList(generatedObjects)
+
+	for _, ref := range svc.Status.ManagedObjects {
+		// managedObject is also contained by current version, so the object was not deleted
+		if newList.Contains(ref) {
+			continue
+		}
+
+		if err := r.deleteManagedObject(reqLogger, ref); err != nil {
+			return fmt.Errorf("failed to clean up object: %v", err)
+		}
+
+		svc.Status.ManagedObjects.Remove(ref)
+	}
+
+	return nil
+}
+
+func (r *ReconcileService) deleteManagedObject(reqLogger logr.Logger, managedObject *appsv1alpha1.ManagedObject) error {
+	kind := managedObject.GroupVersionKind()
+	name := managedObject.NamespacedName()
+
+	obj, err := r.scheme.New(kind)
+	if err != nil {
+		return fmt.Errorf("failed to create object from managedObject %s: %v", managedObject, err)
+	}
+
+	err = r.client.Get(context.TODO(), name, obj)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			reqLogger.Error(err, fmt.Sprintf("failed to delete object %s", managedObject))
+			return nil
+		}
+
+		return fmt.Errorf("failed to find managedObject %s: %v", managedObject, err)
+	}
+
+	err = r.client.Delete(context.TODO(), obj)
+	if err != nil {
+		return fmt.Errorf("failed to delete managedObject %s: %v", managedObject, err)
+	}
+
+	reqLogger.Info(fmt.Sprintf("deleted managedObject %s", managedObject))
+
 	return nil
 }

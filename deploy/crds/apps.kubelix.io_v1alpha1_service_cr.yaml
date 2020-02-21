@@ -9,6 +9,7 @@ spec:
   ports:
     - name: http
       container: 8080
+      service: 80
       ingresses:
         - host: "example.klinkert.io"
 

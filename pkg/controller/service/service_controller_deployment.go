@@ -15,25 +15,29 @@ import (
 	"github.com/kubelix/deployer/pkg/names"
 )
 
-func (r *ReconcileService) ensureDeployment(svc *appsv1alpha1.Service, dockerPullSecretNames []string, reqLogger logr.Logger) error {
-	dep, err := r.newDeploymentForService(svc, dockerPullSecretNames)
+func (r *ReconcileService) ensureDeployment(svc *appsv1alpha1.Service, dockerPullSecrets []*corev1.Secret, reqLogger logr.Logger) (*appsv1.Deployment, error) {
+	dep, err := r.newDeploymentForService(svc, dockerPullSecrets)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	depName := types.NamespacedName{Name: dep.Name, Namespace: dep.Namespace}
 	if err := r.ensureObject(reqLogger, svc, dep, depName); err != nil {
-		return fmt.Errorf("failed to handle deployment: %v", err)
+		return nil, fmt.Errorf("failed to handle deployment: %v", err)
 	}
 
-	return nil
+	return dep, nil
 }
 
-func (r *ReconcileService) newDeploymentForService(svc *appsv1alpha1.Service, dockerPullSecretNames []string) (*appsv1.Deployment, error) {
+func (r *ReconcileService) newDeploymentForService(svc *appsv1alpha1.Service, dockerPullSecrets []*corev1.Secret) (*appsv1.Deployment, error) {
 	labels := r.makeLabels(svc)
 	filesConfigMapName := names.FormatDashFromParts(svc.Name, "files")
 
 	dep := &appsv1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: appsv1.SchemeGroupVersion.String(),
+			Kind:       "Deployment",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      svc.Name,
 			Namespace: svc.Namespace,
@@ -65,7 +69,7 @@ func (r *ReconcileService) newDeploymentForService(svc *appsv1alpha1.Service, do
 						},
 					},
 					TerminationGracePeriodSeconds: ptrInt64(30),
-					ImagePullSecrets:              secretNamesToReferences(dockerPullSecretNames),
+					ImagePullSecrets:              secretsToReferences(dockerPullSecrets),
 					Containers: []corev1.Container{
 						{
 							ImagePullPolicy: corev1.PullAlways,
@@ -79,24 +83,24 @@ func (r *ReconcileService) newDeploymentForService(svc *appsv1alpha1.Service, do
 							VolumeMounts:    filesToVolumeMounts(svc),
 
 							/**
-								livenessProbe:
-								  failureThreshold: 3
-								  httpGet:
-									path: /healthz
-									port: app
-									scheme: HTTP
-								  periodSeconds: 10
-								  successThreshold: 1
-								  timeoutSeconds: 1
-								readinessProbe:
-								  failureThreshold: 3
-								  httpGet:
-									path: /healthz
-									port: app
-									scheme: HTTP
-								  periodSeconds: 10
-								  successThreshold: 1
-								  timeoutSeconds: 1
+							livenessProbe:
+							  failureThreshold: 3
+							  httpGet:
+								path: /healthz
+								port: app
+								scheme: HTTP
+							  periodSeconds: 10
+							  successThreshold: 1
+							  timeoutSeconds: 1
+							readinessProbe:
+							  failureThreshold: 3
+							  httpGet:
+								path: /healthz
+								port: app
+								scheme: HTTP
+							  periodSeconds: 10
+							  successThreshold: 1
+							  timeoutSeconds: 1
 							*/
 						},
 					},
@@ -151,10 +155,10 @@ func filesToVolumeMounts(svc *appsv1alpha1.Service) []corev1.VolumeMount {
 	return volumeMounts
 }
 
-func secretNamesToReferences(names []string) []corev1.LocalObjectReference {
+func secretsToReferences(secrets []*corev1.Secret) []corev1.LocalObjectReference {
 	refs := make([]corev1.LocalObjectReference, 0)
-	for _, name := range names {
-		refs = append(refs, corev1.LocalObjectReference{Name: name})
+	for _, secret := range secrets {
+		refs = append(refs, corev1.LocalObjectReference{Name: secret.Name})
 	}
 	return refs
 }

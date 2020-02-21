@@ -13,24 +13,28 @@ import (
 	"github.com/kubelix/deployer/pkg/config"
 )
 
-func (r *ReconcileService) ensureService(svc *appsv1alpha1.Service, reqLogger logr.Logger) error {
+func (r *ReconcileService) ensureService(svc *appsv1alpha1.Service, reqLogger logr.Logger) (*corev1.Service, error) {
 	coreService, err := r.newServiceForService(svc)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	serviceName := types.NamespacedName{Name: coreService.Name, Namespace: coreService.Namespace}
 	if err := r.ensureObject(reqLogger, svc, coreService, serviceName); err != nil {
-		return fmt.Errorf("failed to handle service: %v", err)
+		return nil, fmt.Errorf("failed to handle service: %v", err)
 	}
 
-	return nil
+	return coreService, nil
 }
 
 func (r *ReconcileService) newServiceForService(svc *appsv1alpha1.Service) (*corev1.Service, error) {
 	labels := r.makeLabels(svc)
 
 	coreService := &corev1.Service{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "Service",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      svc.Name,
 			Namespace: svc.Namespace,

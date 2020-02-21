@@ -1,8 +1,12 @@
 package v1alpha1
 
 import (
+	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // ServiceSpec defines the desired state of Service
@@ -49,7 +53,32 @@ type File struct {
 
 // ServiceStatus defines the observed state of Service
 type ServiceStatus struct {
-	Checksums map[string]string `json:"checksums"`
+	ManagedObjects ManagedObjectList `json:"managedObjects,omitempty"`
+}
+
+// ManagedObjectList is a list type for ManagedObject with utility functions
+type ManagedObjectList []*ManagedObject
+
+func (in *ManagedObjectList) FromObjectList(objects []runtime.Object) {
+	for _, obj := range objects {
+		meta, ok := obj.(metav1.Object)
+		if !ok {
+			panic(fmt.Errorf("failed to convert %s to metav1.Object", obj))
+		}
+
+		name := types.NamespacedName{
+			Namespace: meta.GetNamespace(),
+			Name:      meta.GetName(),
+		}
+
+		in.Add(obj, name, "")
+	}
+}
+
+// ManagedObject references an object
+type ManagedObject struct {
+	Checksum  string                 `json:"checksum"`
+	Reference corev1.ObjectReference `json:"reference"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

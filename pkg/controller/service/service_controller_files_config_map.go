@@ -13,25 +13,29 @@ import (
 	"github.com/kubelix/deployer/pkg/names"
 )
 
-func (r *ReconcileService) ensureFilesConfigMap(svc *appsv1alpha1.Service, reqLogger logr.Logger) error {
+func (r *ReconcileService) ensureFilesConfigMap(svc *appsv1alpha1.Service, reqLogger logr.Logger) (*corev1.ConfigMap, error) {
 	config, err := r.newFilesConfigMapForService(svc)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	depName := types.NamespacedName{Name: config.Name, Namespace: config.Namespace}
 	if err := r.ensureObject(reqLogger, svc, config, depName); err != nil {
-		return fmt.Errorf("failed to handle secret: %v", err)
+		return nil, fmt.Errorf("failed to handle secret: %v", err)
 	}
 
-	return nil
+	return config, nil
 }
 
 func (r *ReconcileService) newFilesConfigMapForService(svc *appsv1alpha1.Service) (*corev1.ConfigMap, error) {
 	labels := r.makeLabels(svc)
-	name := names.FormatDashFromParts(svc.Name, "files")
+	name := names.FormatDashFromParts(svc.Name, "mounted-files")
 
 	config := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "ConfigMap",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: svc.Namespace,
