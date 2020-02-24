@@ -5,6 +5,7 @@ metadata:
 spec:
   singleton: false # implies replica = 1 & deployment strategy = recreate
   image: paulbouwer/hello-kubernetes:1.5 # {{ env "CI_COMMIT_SHA" | default "latest" }}
+  serviceAccountName: ""
 
   ports:
     - name: http

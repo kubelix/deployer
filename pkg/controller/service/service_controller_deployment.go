@@ -53,6 +53,7 @@ func (r *ReconcileService) newDeploymentForService(svc *appsv1alpha1.Service, do
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
+					ServiceAccountName: svc.Spec.ServiceAccountName,
 					Affinity: &corev1.Affinity{
 						PodAntiAffinity: &corev1.PodAntiAffinity{
 							PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{

@@ -16,10 +16,11 @@ type ServiceSpec struct {
 	Command   []string `json:"command,omitempty"`
 	Args      []string `json:"args,omitempty"`
 
-	Ports     PortList                    `json:"ports,omitempty"`
-	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-	Env       Environment                 `json:"env,omitempty"`
-	Files     []File                      `json:"files,omitempty"`
+	Ports              PortList                    `json:"ports,omitempty"`
+	Resources          corev1.ResourceRequirements `json:"resources,omitempty"`
+	Env                Environment                 `json:"env,omitempty"`
+	Files              []File                      `json:"files,omitempty"`
+	ServiceAccountName string                      `json:"serviceAccountName,omitempty"`
 }
 
 // Environment defines env vars for the app container

@@ -14,6 +14,10 @@ spec:
   singleton: false
   image: paulbouwer/hello-kubernetes:1.5
   
+  # add a service account to the pod. SA needs to be created upfront, the deployer currently does not 
+  # support creation of RBAC objects.
+  serviceAccountName: ""
+  
   # ports can contain 0 to n ports exposed on a corev1/service
   # if ports is an empty list no service is created at all
   ports:
@@ -110,7 +114,4 @@ managed services.
 ## TODO
 
 - [ ] Liveness & Readiness probes
-- [ ] cleanup objects where the related config is removed
-        (i.e. by removing all of the ports the service and ingresses should be removed)
 - [ ] support sidecar containers?
-- [ ] Service accounts
