@@ -31,7 +31,7 @@ func (r *ReconcileService) ensureDeployment(svc *appsv1alpha1.Service, dockerPul
 
 func (r *ReconcileService) newDeploymentForService(svc *appsv1alpha1.Service, dockerPullSecrets []*corev1.Secret) (*appsv1.Deployment, error) {
 	labels := r.makeLabels(svc)
-	filesConfigMapName := names.FormatDashFromParts(svc.Name, "files")
+	filesConfigMapName := names.FormatDashFromParts(svc.Name, "mounted-files")
 
 	dep := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
