@@ -28,6 +28,14 @@ func TestChecksum(t *testing.T) {
 			want:    "114b305aea2dc44abb98d0d566131733",
 			wantErr: false,
 		},
+		{
+			name: "null",
+			args: args{
+				spec: nil,
+			},
+			want:    "37a6259cc0c1dae299a7866489dff0bd",
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

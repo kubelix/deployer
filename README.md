@@ -9,15 +9,15 @@ kind: Service
 metadata:
   name: example
 spec:
-  # singleton=true implies replica = 1 & deploymentStrategy = recreate. Use this for services 
-  # where you want to have exactly 1 instance of, or at most 1 instance in case of deployment rollout 
+  # singleton=true implies replica = 1 & deploymentStrategy = recreate. Use this for services
+  # where you want to have exactly 1 instance of, or at most 1 instance in case of deployment rollout
   singleton: false
   image: paulbouwer/hello-kubernetes:1.5
-  
-  # add a service account to the pod. SA needs to be created upfront, the deployer currently does not 
+
+  # add a service account to the pod. SA needs to be created upfront, the deployer currently does not
   # support creation of RBAC objects.
   serviceAccountName: ""
-  
+
   # ports can contain 0 to n ports exposed on a corev1/service
   # if ports is an empty list no service is created at all
   ports:
@@ -25,7 +25,7 @@ spec:
       container: 8080 # port the container exposes
       service: 80 # port the service exposes; also used for ingress
 
-      # each ingress line 
+      # each ingress entry will create a single ingress resource
       ingresses:
         - host: "example.klinkert.io"
           paths: ["/"] # a single path with "/" is the default
@@ -43,7 +43,7 @@ spec:
   env:
     KEY1: VALUE1
     KEY2: value2
-  
+
   # each file will be mounted at the specified path with the specified content
   files:
     - name: config
@@ -90,7 +90,7 @@ helm install kubelix/deployer
     - config files
     - CLI args
 - If you need to replace variables in the service custom resource
-- Sidecars are kind of an anti-pattern? Use dedicated deployments for them. 
+- Sidecars are kind of an anti-pattern? Use dedicated deployments for them.
 
 
 ## Private docker registries
@@ -108,10 +108,34 @@ dockerPullSecretes:
 > **hint:** This assumes that you have one deployment user configured in your registry that is used for all projects to pull images.
 If you need multiple users / credentials the safest way would be to deploy multiple deployer (which then only watch a
 single namespace) and thus separate the credentials, because the deployer pragmatically adds all configured docker pull secrets to all
-managed services. 
+managed services.
 
+
+## Custom annotations
+
+Set custom annotations using the configuration:
+
+```yaml
+ingress: # will be added to each ingress resource, if created
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    kubernetes.io/ingress.class: nginx
+coreService:
+  annotations: {} # will be added to the corev1.Service, if created
+deployment:
+  annotations: {} # will be added to the deployment of the app
+
+dockerPullSecretes: []
+```
 
 ## TODO
 
 - [ ] Liveness & Readiness probes
 - [ ] support sidecar containers?
+
+## License
+
+```
+MIT License
+Copyright (c) 2020 Alexander Klinkert
+```
